@@ -1,0 +1,20 @@
+name: run test on commit # running the test on each commit and push to the github repository
+on: push # on each subsequent pushes to the github repository, then just push the keeps
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository # repo checkout via versioning
+        uses: actions/checkout@v4
+      - name: Set up Python # python checking via versioning
+        uses: actions/setup-python@v5
+        with:
+            python-version: "3.13"
+      - name: Check pip installation # pip installation confirmation via version checking
+        run: pip --version
+      - name: install icarus verilog
+        run: sudo apt-get update && sudo apt-get install -y iverilog
+      - name: install dependencies # installing required dependencies via requirement.txt
+        run: pip install -r requirements.txt
+      - name: confirm pytest install and run test suite # run the PyTest installation confirmation with the version checking
+        run: pytest -v testbenches/test_runner.py
