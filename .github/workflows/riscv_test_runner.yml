@@ -1,5 +1,5 @@
 name: run test on commit # running the test on each commit and push to the github repository
-on: push # on each subsequent pushes to the github repository, then just push the keeps
+on: [push, pull_request] # on each subsequent pushes to the github repository, then just push the keeps
 jobs:
   test:
     runs-on: ubuntu-latest
