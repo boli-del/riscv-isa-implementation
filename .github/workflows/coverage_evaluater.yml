@@ -13,11 +13,11 @@ jobs:
             - name: Verify pip Installation
               run: pip --version
             - name: Install Dependencies
-              run: pip install -r requirements
+              run: pip install -r requirements.txt
             - name: Install Verilator
               run: sudo apt-get update && sudo apt-get install -y verilator
             - name: Check Verilator Installation
               run: verilator --version
             - name: Run Verilator Coverage Report
-              run: verilator -cc design.v --coverage --exe && make -C obj_dir && verilator_coverage --anotate coverage_report.dat
+              run: verilator -cc top.v --coverage --exe && make -C obj_dir && verilator_coverage --anotate coverage_report.dat
             
