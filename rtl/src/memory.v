@@ -43,9 +43,21 @@ module L1_cache(
     end
 endmodule
 
+module L2_cache(
+    input clk,
+    input [31:0] w_data,
+    input [31:0] index,
+    input w_enable,
+    input mem_hi_up,
+    output [511:0] mem_hi_up_result
+);
+    reg []
+endmodule
+
 
 // base memory is a 4 gb memory storage
 module base_memory(
+    input clk,
     input [31:0] w_data,
     input [31:0] index,
     input w_enable,
@@ -55,10 +67,10 @@ module base_memory(
     output [511:0] mem_hi
 );
     reg [7:0] mem [31:0];
-    always @(*) begin
+    always @(posedge clk) begin
         if(mem_hi_up) begin
             for(i = index; i < index + 64; i = i + 1) begin
-                L2_cache();
+                mem_hi[((i-index)*8) : (((i - index)*8) + 7)];
             end
         end
         if(w_enable) begin
