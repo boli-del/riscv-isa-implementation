@@ -31,4 +31,3 @@ async def test_sub(dut):
     await Timer(0.5, unit = 'ns')
     assert(dut.ex_wb.value == 3)
 
-
