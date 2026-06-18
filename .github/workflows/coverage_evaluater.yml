@@ -19,5 +19,5 @@ jobs:
             - name: Check Verilator Installation
               run: verilator --version
             - name: Run Verilator Coverage Report
-              run: verilator -cc top.v --coverage --exe && make -C obj_dir && verilator_coverage --anotate coverage_report.dat
+              run: verilator -cc rtl/top.v --coverage --exe && make -C obj_dir && verilator_coverage --anotate coverage_report.dat
             
