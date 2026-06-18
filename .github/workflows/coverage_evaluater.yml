@@ -1,0 +1,23 @@
+name: run_coverage_against_diff
+on: push
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+            - name: Setup Python
+              uses: actions/setup-python@v5
+              with: 
+                python-version: "3.13"   
+            - name: Verify pip Installation
+              run: pip --version
+            - name: Install Dependencies
+              run: pip install -r requirements
+            - name: Install Verilator
+              run: sudo apt-get update && sudo apt-get install -y verilator
+            - name: Check Verilator Installation
+              run: verilator --version
+            - name: Run Verilator Coverage Report
+              run: verilator -cc design.v --coverage --exe && make -C obj_dir && verilator_coverage --anotate coverage_report.dat
+            
