@@ -54,15 +54,21 @@ module base_memory(
     output [31:0] data_index,
     output [511:0] mem_hi
 );
-    reg [31:0] mem [7:0];
+    reg [7:0] mem [31:0];
     always @(*) begin
         if(mem_hi_up) begin
-            for()
+            for(i = index; i < index + 64; i = i + 1) begin
+                L2_cache();
+            end
+        end
         if(w_enable) begin
-            mem[index] <= w_data[];
+            mem[index] <= w_data[7:0];
+            mem[index + 1] <= w_data[15:8];
+            mem[index + 2] <= w_data[23:16];
+            mem[index + 3] <= w_data[31:24];
         end
         else begin
-            data_read <= mem[index];
+            data_read <= {mem[index+3], mem[index+2], mem[index+1], mem[index]};
         end
     end
 endmodule

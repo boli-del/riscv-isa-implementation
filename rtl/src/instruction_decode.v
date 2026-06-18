@@ -103,5 +103,11 @@ module register_file(
             reg_collection[rd] <= wb;
         end
     end
-
 endmodule
+
+module imm_gen(
+    input imm_gen_ena,
+    input [31:0] instr_code,
+    input []
+    output []
+)
