@@ -7,14 +7,14 @@ module ALU(
 );
     always @(*) begin
         case(mode)
-            4'b0000: o <= a + b;
-            4'b0001: o <= a - b;
-            4'b0010: o <= a ^ b;
-            4'b0011: o <= a | b;
-            4'b0100: o <= a & b;
-            4'b0101: o <= a << b;
-            4'b0110: o <= a >> b;
-            4'b0111: o <= a >>> b;
+            4'b0000: o = a + b;
+            4'b0001: o = a - b;
+            4'b0010: o = a ^ b;
+            4'b0011: o = a | b;
+            4'b0100: o = a & b;
+            4'b0101: o = a << b;
+            4'b0110: o = a >> b;
+            4'b0111: o = a >>> b;
             4'b1000: slt(a, b, o);
             4'b1001: sltu(a, b, o);
             default: o = a + b;
