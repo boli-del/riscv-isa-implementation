@@ -19,5 +19,7 @@ jobs:
             - name: Check Verilator Installation
               run: verilator --version
             - name: Run Verilator Coverage Report
-              run: verilator -cc rtl/top.v --coverage --exe && make -C obj_dir && verilator_coverage --anotate coverage_report.dat
-            
+              run: SIM=verilator pytest -v testbenches/test_runner.py
+            - name: Annotate coverage
+              run: verilator_coverage --annotate annotated sim_build/coverage.dat
+              
