@@ -8,19 +8,24 @@ jobs:
               uses: actions/checkout@v4
             - name: Setup Python
               uses: actions/setup-python@v5
-              with: 
-                python-version: "3.13"   
+              with:
+                python-version: "3.13"
             - name: Verify pip Installation
               run: pip --version
             - name: Install Dependencies
-              run: pip install -r requirements.txt
-            - name: Install Verilator
-              run: sudo apt-get update && sudo apt-get install -y verilator
+              run: pip install -r requirements.txt diff-cover
+            - name: Build Verilator
+              run: |
+                sudo apt-get update
+                sudo apt-get install -y git help2man perl python3 make autoconf g++ flex bison ccache libgoogle-perftools-dev numactl
+                git clone https://github.com/verilator/verilator
+                cd verilator && git checkout v5.028
+                autoconf && ./configure && make -j$(nproc) && sudo make install
             - name: Check Verilator Installation
               run: verilator --version
             - name: Run Verilator Coverage Report
               run: SIM=verilator pytest -v testbenches/test_runner.py
-            - name: Annotate coverage
+            - name: Convert coverage to lcov
               run: verilator_coverage --write-info coverage.info sim_build/coverage.dat
             - name: Gate diff coverage
-              run: diff=cover coverage.info --compare-branch = origin/main --fail-under=85
+              run: diff-cover coverage.info --compare-branch=origin/main --fail-under=85
