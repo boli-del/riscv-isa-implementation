@@ -6,6 +6,8 @@ jobs:
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
             - name: Setup Python
               uses: actions/setup-python@v5
               with:
@@ -14,13 +16,12 @@ jobs:
               run: pip --version
             - name: Install Dependencies
               run: pip install -r requirements.txt diff-cover
-            - name: Build Verilator
+            - name: Install Verilator (OSS CAD Suite)
               run: |
-                sudo apt-get update
-                sudo apt-get install -y git help2man perl python3 make autoconf g++ flex bison ccache libgoogle-perftools-dev numactl
-                git clone https://github.com/verilator/verilator
-                cd verilator && git checkout v5.028
-                autoconf && ./configure && make -j$(nproc) && sudo make install
+                cd /tmp
+                curl -L -o oss-cad.tgz https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-06-19/oss-cad-suite-linux-x64-20260619.tgz
+                tar -xzf oss-cad.tgz
+                echo "/tmp/oss-cad-suite/bin" >> "$GITHUB_PATH"
             - name: Check Verilator Installation
               run: verilator --version
             - name: Run Verilator Coverage Report
