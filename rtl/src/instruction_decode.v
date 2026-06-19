@@ -2,6 +2,7 @@
 //so far only decode add instruction
 //instruction structure and decode element needed, rs1, rs2, rd, and funct 3 and funct 7
 //implementing r-type instructions
+`timescale 1ns/1ps
 module instruction_dec(
     input [31:0] instr_code,
     output [4:0] rs1,
@@ -21,6 +22,7 @@ module instruction_dec(
     det_r_alu_op det_op(instr_code[14:12], instr_code[31:25], mode);
 endmodule
 
+`timescale 1ns/1ps
 module ID_pipeline_reg(
     input clk,
     input [4:0] rd,
@@ -40,6 +42,7 @@ module ID_pipeline_reg(
     end
 endmodule
 
+`timescale 1ns/1ps
 module det_r_alu_op(
     input [2:0] funct3,
     input [6:0] funct7,
@@ -79,6 +82,7 @@ module det_r_alu_op(
     end
 endmodule;
 
+`timescale 1ns/1ps
 module register_file(
     input clk,
     input rst_n,
@@ -103,5 +107,4 @@ module register_file(
             reg_collection[rd] <= wb;
         end
     end
-
 endmodule

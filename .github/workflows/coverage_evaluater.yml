@@ -21,5 +21,6 @@ jobs:
             - name: Run Verilator Coverage Report
               run: SIM=verilator pytest -v testbenches/test_runner.py
             - name: Annotate coverage
-              run: verilator_coverage --annotate annotated sim_build/coverage.dat
-              
+              run: verilator_coverage --write-info coverage.info sim_build/coverage.dat
+            - name: Gate diff coverage
+              run: diff=cover coverage.info --compare-branch = origin/main --fail-under=85

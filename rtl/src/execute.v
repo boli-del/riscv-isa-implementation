@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 module ALU(
     input [31:0] a,
     input [31:0] b,
@@ -65,7 +66,7 @@ module ALU(
 endmodule
 
 
-
+`timescale 1ns/1ps
 module execute(
     input [31:0] rs1,
     input [31:0] rs2,
@@ -75,6 +76,7 @@ module execute(
     ALU calc(rs1, rs2, mode, out);
 endmodule
 
+`timescale 1ns/1ps
 module ex_pipeline_reg(
     input clk,
     input [31:0] out,
