@@ -13,6 +13,7 @@ def test_add_runner():
     runner.build(
         sources = sources,
         hdl_toplevel= "top_module",
+        build_args = ["--coverage"] if sim == "verilator" else [],
         waves = True
     )
     runner.test(hdl_toplevel="top_module", test_module = ["test_add", "test_r_type"], waves = True)

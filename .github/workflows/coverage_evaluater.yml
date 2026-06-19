@@ -1,0 +1,32 @@
+name: run_coverage_against_diff
+on: push
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+            - name: Setup Python
+              uses: actions/setup-python@v5
+              with:
+                python-version: "3.13"
+            - name: Verify pip Installation
+              run: pip --version
+            - name: Install Dependencies
+              run: pip install -r requirements.txt diff-cover
+            - name: Install Verilator (OSS CAD Suite)
+              run: |
+                cd /tmp
+                curl -L -o oss-cad.tgz https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-06-19/oss-cad-suite-linux-x64-20260619.tgz
+                tar -xzf oss-cad.tgz
+                echo "/tmp/oss-cad-suite/bin" >> "$GITHUB_PATH"
+            - name: Check Verilator Installation
+              run: verilator --version
+            - name: Run Verilator Coverage Report
+              run: SIM=verilator pytest -v testbenches/test_runner.py
+            - name: Convert coverage to lcov
+              run: verilator_coverage --write-info coverage.info sim_build/coverage.dat
+            - name: Gate diff coverage
+              run: diff-cover coverage.info --compare-branch=origin/main --fail-under=85

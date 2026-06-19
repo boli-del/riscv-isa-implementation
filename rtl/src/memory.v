@@ -7,7 +7,7 @@
 // L1 direct-mapped cache
 // and then we have 4 bit index
 // 32 - 10 = 22 bit tag
-
+`timescale 1ns/1ps
 module L1_cache(
     input [31:0] luindex,
     input [31:0] stor_index,
@@ -45,6 +45,7 @@ endmodule
 
 
 // base memory is a 4 gb memory storage
+`timescale 1ns/1ps
 module base_memory(
     input [31:0] w_data,
     input [31:0] index,
@@ -58,6 +59,7 @@ module base_memory(
     always @(*) begin
         if(mem_hi_up) begin
             for()
+        end
         if(w_enable) begin
             mem[index] <= w_data[];
         end
