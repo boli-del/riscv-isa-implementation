@@ -79,6 +79,9 @@ module det_r_alu_op(
         else if(funct3 == 3) begin
             alu_op_code = 9;
         end
+        else begin
+            alu_op_code = 0;
+        end
     end
 endmodule;
 
