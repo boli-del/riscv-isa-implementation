@@ -17,7 +17,6 @@ module L1_cache(
     output [31:0] stor_data_out,
     output [31:0] data_replacement_idx,
     output [512:0] data_replacement,
-    output data_replacement,
     output data_rep_w_enable
 );
     //512 bit data storage (64 bytes)
@@ -29,15 +28,13 @@ module L1_cache(
     wire [21:0] tag_extr = luindex[31:10];
     wire [3:0] idx = luindex[9:6];
     wire [5:0] offset = luindex[5:0];
-
-    //implementation of least recently used policy
     always @(posedge clk) begin
         if (w_enable) begin
             if(valid[idx]) begin
                 if(tag[idx] == tag_extr) begin
                     data[idx] = tag;
                 end else begin
-                    L2_cache()
+                    data_rep_w_enable <= 1;
                 end
             end
         end
@@ -54,7 +51,8 @@ module L2_cache(
     output reg [512:0] data_out,
     output data_replacement,
     output [31:0] data_replacement_idx,
-    output data_replacement_w_enable
+    output data_replacement_w_enable,
+    output data_out_en
 );
     reg [511:0] data [6:0];  //larger cache than l1, 8x more data here
     reg [18:0] index [6:0];
@@ -64,7 +62,7 @@ module L2_cache(
         if(replacement_needed) begin
             if(index[idx_l2] == tag_l2) begin
                 data_out <= data[idx_l2];
-                if(w_enable)
+                data_out_en <= 1;
             end
             else begin
                 data_replacement_idx <= idx;
@@ -80,29 +78,27 @@ endmodule
 // base memory is a 4 gb memory storage
 module base_memory(
     input clk,
-    input [31:0] w_data,
+    input [511:0] w_data,
     input [31:0] index,
     input w_enable,
     input mem_hi_up,
-    output [31:0] data_read,
-    output [31:0] data_index,
-    output [511:0] mem_hi
+    output reg [511:0] data_out,
+    output reg [31:0] data_index,
+    output reg data_w_up
 );
-    reg [7:0] mem [31:0];
+    reg [511:0] base_memory [8:0];
+    reg [16:0] tag_base[8:0];
+    wire idx[8:0] = index[14:6];
+    wire tag[16:0] = index[31:15];
     always @(posedge clk) begin
-        if(mem_hi_up) begin
-            for(i = index; i < index + 64; i = i + 1) begin
-                mem_hi[((i-index)*8) : (((i - index)*8) + 7)];
-            end
-        end
         if(w_enable) begin
-            mem[index] <= w_data[7:0];
-            mem[index + 1] <= w_data[15:8];
-            mem[index + 2] <= w_data[23:16];
-            mem[index + 3] <= w_data[31:24];
+            base_memory[idx] <= w_data;
+            data_w_up <= 0;
         end
-        else begin
-            data_read <= {mem[index+3], mem[index+2], mem[index+1], mem[index]};
+        if(mem_hi_up) begin
+            data_out <= base_memory[idx];
+            data_index <= index;
+            data_w_up <= 1;
         end
     end
 endmodule
