@@ -17,5 +17,19 @@ def test_add_runner():
     )
     runner.test(hdl_toplevel="top_module", test_module = ["test_add", "test_r_type"], waves = True)
 
+def test_mem_runner():
+    sim = os.getenv("SIM", "icarus")
+    proj_path = Path(__file__).resolve().parent.parent
+    sources = [proj_path/"rtl"/"src"/"new_handshake_cache.v"]
+    runner = get_runner(sim)
+    runner.build(
+        sources = sources,
+        hdl_toplevel = "l1_cache",
+        build_dir = "sim_build_l1",
+        waves = True
+    )
+    runner.test(hdl_toplevel = "l1_cache", test_module = ["test_mem"], waves = True)
+
 if __name__ == "__main__":
     test_add_runner()
+    test_mem_runner()

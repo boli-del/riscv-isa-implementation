@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 module l1_cache(
     input clk,
     input rst_n,
