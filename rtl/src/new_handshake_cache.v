@@ -116,3 +116,20 @@ module l1_cache(
         end
     end
 endmodule
+
+module l2_cache(
+    input clk,
+    input rst_n
+    input l2_initiated,
+    input dirty,
+    input [511:0] data_w,
+    input [31:0] index_w,
+    input [31:0] data_in_index,
+    input[1:0] state_in,
+    output [511:0] data_out,
+    output completed_wb,
+    output[1:0] state_out,
+    output l3_write_from_l2,
+    output [31:0] dataout_index
+);
+endmodule
