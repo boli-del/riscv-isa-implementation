@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 module ALU(
     input [31:0] a,
     input [31:0] b,
@@ -6,14 +7,14 @@ module ALU(
 );
     always @(*) begin
         case(mode)
-            4'b0000: o <= a + b;
-            4'b0001: o <= a - b;
-            4'b0010: o <= a ^ b;
-            4'b0011: o <= a | b;
-            4'b0100: o <= a & b;
-            4'b0101: o <= a << b;
-            4'b0110: o <= a >> b;
-            4'b0111: o <= a >>> b;
+            4'b0000: o = a + b;
+            4'b0001: o = a - b;
+            4'b0010: o = a ^ b;
+            4'b0011: o = a | b;
+            4'b0100: o = a & b;
+            4'b0101: o = a << b;
+            4'b0110: o = a >> b;
+            4'b0111: o = a >>> b;
             4'b1000: slt(a, b, o);
             4'b1001: sltu(a, b, o);
             default: o = a + b;
@@ -65,7 +66,7 @@ module ALU(
 endmodule
 
 
-
+`timescale 1ns/1ps
 module execute(
     input [31:0] rs1,
     input [31:0] rs2,
@@ -75,6 +76,7 @@ module execute(
     ALU calc(rs1, rs2, mode, out);
 endmodule
 
+`timescale 1ns/1ps
 module ex_pipeline_reg(
     input clk,
     input [31:0] out,

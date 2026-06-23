@@ -1,4 +1,5 @@
 //very custom instruction fetch module
+`timescale 1ns/1ps
 module instruction_fetch(
     input [31:0] pc,
     output [31:0] instr_code,
@@ -10,6 +11,7 @@ module instruction_fetch(
     assign new_pc = pc + 4;
 endmodule
 
+`timescale 1ns/1ps
 module instruction_fetch_reg(
     input clk,
     input [31:0] pc,
