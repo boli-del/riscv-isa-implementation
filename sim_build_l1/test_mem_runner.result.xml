@@ -1,6 +1,6 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-    <property name="random_seed" value="1782223614" />
-    <testcase name="test_l1_cache" classname="test_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_mem.py" lineno="6" time="0.017750263214111328" sim_time_ns="2.2" ratio_time="123.94182404298188" />
+    <property name="random_seed" value="1782226117" />
+    <testcase name="test_l1_cache" classname="test_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_mem.py" lineno="6" time="0.008609771728515625" sim_time_ns="2.2" ratio_time="255.5236154186974" />
   </testsuite>
 </testsuites>
