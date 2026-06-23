@@ -26,7 +26,7 @@ def test_mem_runner():
     runner.build(
         sources = sources,
         hdl_toplevel = "l1_cache",
-        build_dir = "sim_build_l1",
+        build_args = ["--coverage"] if sim == "verilator" else [],
         waves = True
     )
     runner.test(hdl_toplevel = "l1_cache", test_module = ["test_mem"], waves = True)
