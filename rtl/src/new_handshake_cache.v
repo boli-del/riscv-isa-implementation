@@ -109,6 +109,9 @@ module l1_cache(
                 next_state <= 2'b10;
                 start_read_w <= 1;
             end
+            2'b11: begin
+                next_state <= 2'b11;
+            end
         endcase
         end
     end
