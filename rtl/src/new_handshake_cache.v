@@ -119,17 +119,111 @@ endmodule
 
 module l2_cache(
     input clk,
-    input rst_n
+    input rst_n,
     input l2_initiated,
-    input dirty,
+    input b_dirty,
     input [511:0] data_w,
     input [31:0] index_w,
     input [31:0] data_in_index,
     input[1:0] state_in,
-    output [511:0] data_out,
-    output completed_wb,
-    output[1:0] state_out,
-    output l3_write_from_l2,
-    output [31:0] dataout_index
+    output reg [511:0] data_out,
+    output reg completed_wb,
+    output reg [1:0] next_state,
+    output reg l3_write_from_l2,
+    output reg l3_search_dirty,
+    output reg [31:0] dataout_index,
+    output reg [31:0] data_out_dirty_index,
+    output reg l2_acknowledged,
+    output reg l2_finished,
+    output reg data_out_dirty,
+    output reg dirt_acknowledged
 );
+    reg [511:0] l2_mem [6:0];
+    reg [20:0] l2_tag [6:0];
+    reg valid [6:0];
+    reg dirty [6:0];
+    wire tag_in = data_in_index[31:11];
+    wire idx = data_in_index[10:7];
+    wire offset = data_in_index[6:0];
+    wire idx_w = index_w[10:7];
+    wire tag_w = index_w [31:11];
+    wire offset_w = index_w[6:0];
+    always @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            data_out <= 0;
+            completed_wb <= 0;
+            state_out <= 0;
+            l3_write_from_l2 <= 0;
+            dataout_index <= 0;
+        end
+        case(state_in)
+            2'b11: begin  
+                if(l2_tag[idx_w] == tag_w) begin
+                    l2_mem[idx_w] <= data_w;
+                    l2_acknowledged <= 0;
+                    l2_finished <= 0;
+                    next_state <= 2'b01;
+                    dirty_acknowledged <= 1;
+                end
+                else begin
+                    l3_search_dirty <= 1;
+                    data_out <= data_w;
+                    data_out_index <= index_w;
+                    completed_wb <= 0;
+                    l3_write_from_l2 <= 1;
+                    l2_acknowledged <= 0;
+                    l2_finished <= 0;
+                    dirty_acknowledged <= 1;
+                    next_state <= 2'b00;
+                end
+            end
+            2'b01: begin
+                if(~l2_initiated) begin
+                    next_state <= 2'b01;
+                end
+                else begin
+                    if(b_dirty) begin
+                        next_state <= 2'b11;
+                    end
+                    else if(l2_initiated) begin
+                        l2_acknowledged <= 1;
+                        if(l2_tag[idx] == tag_in) begin
+                            l3_write_from_l2 <= 0;
+                            dataout_index <= data_in_index;
+                            data_out <= l2_tag[idx];
+                            l2_finished <= 1;
+                            l3_write_from_l2 <= 0;
+                            l3_search_dirty <= 0;
+                            completed_wb <= 0;
+                            state_out <= 2'b01;
+                            dirt_acknowledged <= 0;
+                        end
+                        else begin
+                            l3_write_from_l2 <= 1;
+                            dataout_index <= data_in_index;
+                            l3_search_dirty <= 0;
+                            completed_wb <= 0;
+                            l2_finished <= 0;
+                            next_state <= 2'b00;
+                            data_out_dirty <= 0;
+                        end
+                    end
+                end
+            end
+            2'b00: begin
+                if(completed_wb) begin
+                    next_state <= 2'b10;
+                end
+                else begin
+                    next_state <= 2'b00;
+                end
+            end
+            2'b10: begin
+                next_state <= 2'b01;
+                data_out_dirty <= dirty[idx];
+                data_out_dirty_index <= {tag[idx], idx, 7'b0000000};
+                tag[idx] <= tag_in;
+            end
+        endcase
+    end
 endmodule
