@@ -1,3 +1,4 @@
+`default_nettype none
 `timescale 1ns/1ps
 module l1_cache(
     input clk,
@@ -117,6 +118,8 @@ module l1_cache(
     end
 endmodule
 
+`default_nettype none
+`timescale 1ns/1ps
 module l2_cache(
     input clk,
     input rst_n,
@@ -138,42 +141,45 @@ module l2_cache(
     output reg data_out_dirty,
     output reg dirt_acknowledged
 );
-    reg [511:0] l2_mem [6:0];
-    reg [20:0] l2_tag [6:0];
-    reg valid [6:0];
-    reg dirty [6:0];
-    wire tag_in = data_in_index[31:11];
-    wire idx = data_in_index[10:7];
-    wire offset = data_in_index[6:0];
-    wire idx_w = index_w[10:7];
-    wire tag_w = index_w [31:11];
-    wire offset_w = index_w[6:0];
+    reg [511:0] l2_mem [15:0];
+    reg [20:0] l2_tag [15:0];
+    reg dirty [15:0];
+    integer i;
+    wire [20:0] tag_in = data_in_index[31:11];
+    wire [3:0] idx = data_in_index[10:7];
+    wire [3:0] idx_w = index_w[10:7];
+    wire [20:0] tag_w = index_w [31:11];
     always @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             data_out <= 0;
             completed_wb <= 0;
-            state_out <= 0;
+            next_state <= 0;
             l3_write_from_l2 <= 0;
             dataout_index <= 0;
+            for(i = 0; i < 16; i = i + 1) begin
+                dirty[i] <= 1'b0;
+            end
         end
+        else begin
         case(state_in)
-            2'b11: begin  
+            2'b11: begin
                 if(l2_tag[idx_w] == tag_w) begin
                     l2_mem[idx_w] <= data_w;
+                    dirty[idx_w] <= 1'b1;
                     l2_acknowledged <= 0;
                     l2_finished <= 0;
                     next_state <= 2'b01;
-                    dirty_acknowledged <= 1;
+                    dirt_acknowledged <= 1;
                 end
                 else begin
                     l3_search_dirty <= 1;
                     data_out <= data_w;
-                    data_out_index <= index_w;
+                    dataout_index <= index_w;
                     completed_wb <= 0;
                     l3_write_from_l2 <= 1;
                     l2_acknowledged <= 0;
                     l2_finished <= 0;
-                    dirty_acknowledged <= 1;
+                    dirt_acknowledged <= 1;
                     next_state <= 2'b00;
                 end
             end
@@ -190,12 +196,11 @@ module l2_cache(
                         if(l2_tag[idx] == tag_in) begin
                             l3_write_from_l2 <= 0;
                             dataout_index <= data_in_index;
-                            data_out <= l2_tag[idx];
+                            data_out <= l2_mem[idx];
                             l2_finished <= 1;
-                            l3_write_from_l2 <= 0;
                             l3_search_dirty <= 0;
                             completed_wb <= 0;
-                            state_out <= 2'b01;
+                            next_state <= 2'b01;
                             dirt_acknowledged <= 0;
                         end
                         else begin
@@ -221,9 +226,11 @@ module l2_cache(
             2'b10: begin
                 next_state <= 2'b01;
                 data_out_dirty <= dirty[idx];
-                data_out_dirty_index <= {tag[idx], idx, 7'b0000000};
-                tag[idx] <= tag_in;
+                data_out_dirty_index <= {l2_tag[idx], idx, 7'b0000000};
+                l2_tag[idx] <= tag_in;
+                dirty[idx] <= 1'b0;
             end
         endcase
+        end
     end
 endmodule
