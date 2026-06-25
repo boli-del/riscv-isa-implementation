@@ -145,10 +145,10 @@ module l2_cache(
     reg [20:0] l2_tag [15:0];
     reg dirty [15:0];
     integer i;
-    wire [20:0] tag_in = data_in_index[31:11];
-    wire [3:0] idx = data_in_index[10:7];
-    wire [3:0] idx_w = index_w[10:7];
-    wire [20:0] tag_w = index_w [31:11];
+    wire [21:0] tag_in = data_in_index[31:10];
+    wire [3:0] idx = data_in_index[9:6];
+    wire [3:0] idx_w = index_w[9:6];
+    wire [21:0] tag_w = index_w [31:10];
     always @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             data_out <= 0;
@@ -226,11 +226,57 @@ module l2_cache(
             2'b10: begin
                 next_state <= 2'b01;
                 data_out_dirty <= dirty[idx];
-                data_out_dirty_index <= {l2_tag[idx], idx, 7'b0000000};
+                data_out_dirty_index <= {l2_tag[idx], idx, 6'b000000};
                 l2_tag[idx] <= tag_in;
                 dirty[idx] <= 1'b0;
             end
         endcase
+        end
+    end
+endmodule
+
+`default_nettype none
+`timescale 1ns/1ps
+module base_mem(
+    input clk,
+    input rst_n,
+    input b_dirty,
+    input [511:0] data_dirty,
+    input [31:0] index_dirty,
+    input [31:0] index_w,
+    output reg [511:0] data_out,
+    output reg l3_finished_writing,
+    output reg [31:0] dataout_index,
+    output reg l3_acknowledged,
+    output reg l3_finished,
+    output reg dirt_acknowledged
+);
+    reg [511:0] base_mem [63:0];
+    mem_idx <= index_w [11:6];
+    mem_dirty <= index_dirty[11:6];
+    always @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            data_out <= 0;
+            l3_finished_writing <= 0;
+            dataout_index <= 0;
+            l3_acknowledged <= 0;
+            l3_finished <= 0;
+            dirt_acknowledged <= 0;
+        end
+        else begin
+            if(b_dirty) begin
+                dirt_acknowledged <= 1;
+                base_mem[mem_dirty] <= data_dirty;
+                l3_acknowledged <= 1;
+                
+            end
+            else begin
+                l3_acknowledged <= 1;
+                data_out <= base_mem[mem_idx];
+                dataout_index <= index_w;
+                l3_finished <= 1;
+                dirt_acknowledged <= 0;
+            end
         end
     end
 endmodule
