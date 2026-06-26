@@ -251,9 +251,10 @@ module base_mem(
     output reg l3_finished,
     output reg dirt_acknowledged
 );
-    reg [511:0] base_mem [63:0];
-    mem_idx <= index_w [11:6];
-    mem_dirty <= index_dirty[11:6];
+    //maximum storage needed in my base memory here
+    reg [511:0] base_mem [25:0];
+    mem_idx <= index_w [32:6];
+    mem_dirty <= index_dirty[32:6];
     always @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             data_out <= 0;
@@ -268,7 +269,6 @@ module base_mem(
                 dirt_acknowledged <= 1;
                 base_mem[mem_dirty] <= data_dirty;
                 l3_acknowledged <= 1;
-                
             end
             else begin
                 l3_acknowledged <= 1;
