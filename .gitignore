@@ -4,3 +4,4 @@ __pycache__
 .pytest_cache
 sim_build/
 sim_build_l1/
+sim_build_l2/

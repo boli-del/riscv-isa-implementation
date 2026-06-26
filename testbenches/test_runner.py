@@ -23,6 +23,8 @@ def test_mem_runner():
     proj_path = Path(__file__).resolve().parent.parent
     sources = [proj_path/"rtl"/"src"/"new_handshake_cache.v"]
     runner = get_runner(sim)
+
+    # test_l1_cache targets the l1_cache module
     runner.build(
         sources = sources,
         hdl_toplevel = "l1_cache",
@@ -31,7 +33,16 @@ def test_mem_runner():
         build_args = ["--coverage"] if sim == "verilator" else [],
         waves = True
     )
-    runner.test(hdl_toplevel = "l1_cache", test_module = ["test_mem"], waves = True)
+    runner.test(hdl_toplevel = "l1_cache", test_module = ["test_mem"], testcase = ["test_l1_cache"], waves = True)
+    runner.build(
+        sources = sources,
+        hdl_toplevel = "l2_cache",
+        build_dir = "sim_build_l2",
+        always = True,
+        build_args = ["--coverage"] if sim == "verilator" else [],
+        waves = True
+    )
+    runner.test(hdl_toplevel = "l2_cache", test_module = ["test_mem"], testcase = ["test_l2_cache_no_dirty"], waves = True)
 
 if __name__ == "__main__":
     test_add_runner()

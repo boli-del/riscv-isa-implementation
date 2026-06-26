@@ -253,8 +253,8 @@ module base_mem(
 );
     //maximum storage needed in my base memory here
     reg [511:0] base_mem [25:0];
-    mem_idx <= index_w [32:6];
-    mem_dirty <= index_dirty[32:6];
+    wire mem_idx = index_w [32:6];
+    wire mem_dirty = index_dirty[32:6];
     always @(posedge clk or negedge rst_n) begin
         if(~rst_n) begin
             data_out <= 0;

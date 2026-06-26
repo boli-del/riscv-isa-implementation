@@ -2,6 +2,7 @@ import cocotb
 from cocotb.triggers import RisingEdge, Timer
 from cocotb.clock import Clock
 import logging
+import random
 
 @cocotb.test()
 async def test_l1_cache(dut):
@@ -25,4 +26,27 @@ async def test_l1_cache(dut):
     assert (start_read_w.value == 0), "expected no l2_cache return finished and start_read_w to be 0, but got 1 otherwise"
     assert(next_state.value == 0b00), "expected the l1_cache to be stuck on stalling state but changed state otherwise"
     
-
+@cocotb.test()
+async def test_l2_cache_no_dirty(dut):
+    clk = Clock(dut.clk, 2, unit = "ns")
+    clk.start()
+    await Timer(1.2, unit = 'ns')
+    dut.rst_n.value = 1
+    dut.l2_initiated.value = 1
+    dut.b_dirty.value = 0
+    rand_value = random.getrandbits(512)
+    dut.state_in.value = 0b01
+    dut.data_in_index.value = 0
+    dut.l2_mem[0].value = rand_value
+    # data_in_index = 0 -> idx = 0, tag_in = 0; seed the matching tag so the
+    # lookup hits and data_out is loaded from l2_mem[0] (rst never runs here,
+    # so l2_tag would otherwise be X and the compare would miss)
+    dut.l2_tag[0].value = 0
+    await RisingEdge(dut.clk)
+    await Timer(0.2, unit = 'ns')
+    assert(dut.l3_write_from_l2.value == 0)
+    assert(dut.l2_finished.value == 1)
+    assert(dut.l3_search_dirty.value == 0)
+    assert(dut.completed_wb.value == 0)
+    assert(dut.next_state.value == 0b01)
+    assert(dut.data_out.value == rand_value)
