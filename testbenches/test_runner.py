@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 from cocotb_tools.runner import get_runner
 
-# hook up of cocotb test bench into test runner, for running cocotb simulation tests
 # please follow pre-existing example code already that was already commited to wire up your verilog sources into the project
 
 def test_add_runner():
@@ -23,8 +22,6 @@ def test_mem_runner():
     proj_path = Path(__file__).resolve().parent.parent
     sources = [proj_path/"rtl"/"src"/"new_handshake_cache.v"]
     runner = get_runner(sim)
-
-    # test_l1_cache targets the l1_cache module
     runner.build(
         sources = sources,
         hdl_toplevel = "l1_cache",
@@ -43,6 +40,26 @@ def test_mem_runner():
         waves = True
     )
     runner.test(hdl_toplevel = "l2_cache", test_module = ["test_mem"], testcase = ["test_l2_cache_no_dirty"], waves = True)
+
+    runner.build(
+        sources = sources,
+        hdl_toplevel = "base_mem",
+        build_dir = "sim_build_l3",
+        always = True,
+        build_args = ["--coverage"] if sim == "verilator" else [],
+        waves = True
+    )
+    runner.test(hdl_toplevel = "base_mem", test_module = ["test_mem"], testcase = ["test_base_mem_read", "test_base_mem_writeback"], waves = True)
+
+    runner.build(
+        sources = sources,
+        hdl_toplevel = "l2_l3_top",
+        build_dir = "sim_build_l2l3",
+        always = True,
+        build_args = ["--coverage"] if sim == "verilator" else [],
+        waves = True
+    )
+    runner.test(hdl_toplevel = "l2_l3_top", test_module = ["test_mem"], testcase = ["test_l2_l3_refill"], waves = True)
 
 if __name__ == "__main__":
     test_add_runner()
