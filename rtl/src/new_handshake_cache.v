@@ -129,6 +129,7 @@ module l2_cache(
     input [31:0] index_w,
     input [31:0] data_in_index,
     input[1:0] state_in,
+    input l3_completed,
     output reg [511:0] data_out,
     output reg completed_wb,
     output reg [1:0] next_state,
@@ -216,7 +217,7 @@ module l2_cache(
                 end
             end
             2'b00: begin
-                if(completed_wb) begin
+                if(l3_completed) begin
                     next_state <= 2'b10;
                 end
                 else begin

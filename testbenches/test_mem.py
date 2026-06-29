@@ -50,3 +50,37 @@ async def test_l2_cache_no_dirty(dut):
     assert(dut.completed_wb.value == 0)
     assert(dut.next_state.value == 0b01)
     assert(dut.data_out.value == rand_value)
+
+@cocotb.test()
+async def run_test_with_stall_l2(dut):
+    clk = Clock(dut.clk, 2, unit = "ns")
+    clk.start()
+    await Timer(1.2, unit = 'ns')
+    dut.data_in_index.value = 0
+    dut.rst_n.value = 1
+    dut.l2_initiated.value = 1
+    dut.b_dirty = 0
+    dut.state_in.value = 0b01
+    dut.data_in_index.value = 0
+    dut.l2_tag[0] = 1
+    await RisingEdge(dut.clk)
+    dut.state_in.value = dut.next_state.value
+    dut.l3_completed.value = dut.completed_wb
+    await RisingEdge(dut.clk)
+    assert (dut.next_state.value == 0)
+
+@cocotb.test()
+async def run_test_with_replace_l2(dut):
+    clk = Clock(dut.clk, period = 2, unit = 'ns')
+    clk.start()
+    await Timer(1.2, unit = 'ns')
+    dut.rst_n.value = 1
+    dut.l2_initiated.value = 1
+    dut.b_dirty = 1
+    dut.state_in.value = 0b01
+    dut.data_w.value = 1
+    dut.index_w = 0
+    data_in_index = 520
+    await(RisingEdge, dut.clk)
+    await Timer(0.2, unit = 'ns')
+    assert(dut.next_state == 0b11)
