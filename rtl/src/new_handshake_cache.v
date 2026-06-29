@@ -143,7 +143,7 @@ module l2_cache(
     output reg dirt_acknowledged
 );
     reg [511:0] l2_mem [15:0];
-    reg [20:0] l2_tag [15:0];
+    reg [21:0] l2_tag [15:0];
     reg dirty [15:0];
     integer i;
     wire [21:0] tag_in = data_in_index[31:10];
