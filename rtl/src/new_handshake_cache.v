@@ -250,15 +250,15 @@ endmodule
 module base_mem(
     input clk,
     input rst_n,
-    input b_dirty,                  // high => store the dirty victim instead of serving a read
-    input [511:0] data_dirty,       // dirty victim line from L2 (data_out_dirty_line)
-    input [31:0] index_dirty,       // victim address (data_out_dirty_index)
+    input b_dirty,                  
+    input [511:0] data_dirty,       
+    input [31:0] index_dirty,       
     input [31:0] index_w,           // read address requested by L2 (dataout_index)
     output reg [511:0] data_out,    // fetched line -> L2.l3_in
     output reg [31:0] dataout_index,
     output reg l3_completed,        // read served -> L2.l3_completed
     output reg l3_finished_writing, // dirty write-back stored
-    output reg l3_acknowledged      // request seen this cycle
+    output reg l3_acknowledged      
 );
     //maximum storage needed in my base memory here
     reg [511:0] storage [31:0];
