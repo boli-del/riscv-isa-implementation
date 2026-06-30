@@ -1,24 +1,24 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-    <property name="random_seed" value="1782759486" />
+    <property name="random_seed" value="1782825491" />
     <testcase name="test_l1_cache" classname="test_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_mem.py" lineno="7" time="0" sim_time_ns="0" ratio_time="0">
       <skipped />
     </testcase>
     <testcase name="test_l2_cache_no_dirty" classname="test_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_mem.py" lineno="29" time="0" sim_time_ns="0" ratio_time="0">
       <skipped />
     </testcase>
-    <testcase name="run_test_with_stall_l2" classname="test_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_mem.py" lineno="54" time="0" sim_time_ns="0" ratio_time="0">
+    <testcase name="run_test_with_stall_l2" classname="test_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_mem.py" lineno="51" time="0" sim_time_ns="0" ratio_time="0">
       <skipped />
     </testcase>
-    <testcase name="run_test_with_replace_l2" classname="test_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_mem.py" lineno="72" time="0" sim_time_ns="0" ratio_time="0">
+    <testcase name="run_test_with_replace_l2" classname="test_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_mem.py" lineno="69" time="0" sim_time_ns="0" ratio_time="0">
       <skipped />
     </testcase>
-    <testcase name="test_base_mem_read" classname="test_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_mem.py" lineno="88" time="0" sim_time_ns="0" ratio_time="0">
+    <testcase name="test_base_mem_read" classname="test_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_mem.py" lineno="85" time="0" sim_time_ns="0" ratio_time="0">
       <skipped />
     </testcase>
-    <testcase name="test_base_mem_writeback" classname="test_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_mem.py" lineno="109" time="0" sim_time_ns="0" ratio_time="0">
+    <testcase name="test_base_mem_writeback" classname="test_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_mem.py" lineno="106" time="0" sim_time_ns="0" ratio_time="0">
       <skipped />
     </testcase>
-    <testcase name="test_l2_l3_refill" classname="test_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_mem.py" lineno="136" time="0.01385641098022461" sim_time_ns="10.2" ratio_time="736.1213531091915" />
+    <testcase name="test_l2_l3_refill" classname="test_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_mem.py" lineno="131" time="0.011855125427246094" sim_time_ns="10.2" ratio_time="860.3873541951572" />
   </testsuite>
 </testsuites>
