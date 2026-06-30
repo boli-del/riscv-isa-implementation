@@ -38,9 +38,6 @@ async def test_l2_cache_no_dirty(dut):
     dut.state_in.value = 0b01
     dut.data_in_index.value = 0
     dut.l2_mem[0].value = rand_value
-    # data_in_index = 0 -> idx = 0, tag_in = 0; seed the matching tag so the
-    # lookup hits and data_out is loaded from l2_mem[0] (rst never runs here,
-    # so l2_tag would otherwise be X and the compare would miss)
     dut.l2_tag[0].value = 0
     await RisingEdge(dut.clk)
     await Timer(0.2, unit = 'ns')
@@ -84,3 +81,75 @@ async def run_test_with_replace_l2(dut):
     await(RisingEdge, dut.clk)
     await Timer(0.2, unit = 'ns')
     assert(dut.next_state == 0b11)
+
+@cocotb.test()
+async def test_base_mem_read(dut):
+    clk = Clock(dut.clk, 2, unit = "ns")
+    clk.start()
+    await Timer(1.2, unit = 'ns')
+    dut.rst_n.value = 0
+    dut.b_dirty.value = 0
+    dut.index_w.value = 0
+    dut.index_dirty.value = 0
+    dut.data_dirty.value = 0
+    await RisingEdge(dut.clk)
+    dut.rst_n.value = 1
+    line = random.getrandbits(512)
+    dut.storage[0].value = line   
+    dut.index_w.value = 0
+    await RisingEdge(dut.clk)
+    await Timer(0.2, unit = 'ns')
+    assert(dut.l3_completed.value == 1), "expected read to complete but l3_completed was low"
+    assert(dut.data_out.value == line), "base_mem returned the wrong line on a read"
+    assert(dut.l3_finished_writing.value == 0), "write-back flag asserted on a read"
+
+@cocotb.test()
+async def test_base_mem_writeback(dut):
+    clk = Clock(dut.clk, 2, unit = "ns")
+    clk.start()
+    await Timer(1.2, unit = 'ns')
+    dut.rst_n.value = 0
+    dut.b_dirty.value = 0
+    dut.index_w.value = 0
+    dut.index_dirty.value = 0
+    dut.data_dirty.value = 0
+    await RisingEdge(dut.clk)
+    dut.rst_n.value = 1
+    victim = random.getrandbits(512)
+    dut.b_dirty.value = 1
+    dut.data_dirty.value = victim
+    dut.index_dirty.value = 0
+    await RisingEdge(dut.clk)
+    await Timer(0.2, unit = 'ns')
+    assert(dut.l3_finished_writing.value == 1), "write-back did not complete"
+    dut.b_dirty.value = 0
+    dut.index_w.value = 0
+    await RisingEdge(dut.clk)
+    await Timer(0.2, unit = 'ns')
+    assert(dut.data_out.value == victim), "stored victim line did not read back"
+
+@cocotb.test()
+async def test_l2_l3_refill(dut):
+    clk = Clock(dut.clk, 2, unit = "ns")
+    clk.start()
+    await Timer(1.2, unit = 'ns')
+    dut.rst_n.value = 0
+    dut.l2_initiated.value = 1
+    dut.b_dirty.value = 0
+    dut.data_w.value = 0
+    dut.index_w.value = 0
+    dut.data_in_index.value = 0
+    dut.state_in.value = 0b01
+    await RisingEdge(dut.clk)
+    dut.rst_n.value = 1
+    line = random.getrandbits(512)
+    dut.mem.storage[0].value = line
+    dut.l2.l2_tag[0].value = 0x3FFFFF
+    for _ in range(8):
+        await RisingEdge(dut.clk)
+        await Timer(0.2, unit = 'ns')
+        if dut.l2_finished.value == 1:
+            break
+        dut.state_in.value = dut.next_state.value
+    assert(dut.l2_finished.value == 1), "L2 never completed the refill"
+    assert(dut.data_out.value == line), "L2 did not serve the line fetched from base memory"
