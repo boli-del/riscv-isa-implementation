@@ -25,9 +25,9 @@ SC_MODULE(L1_CACHE) {
     vector<bool> valid (16, 0);
     void process(){
        while(true){
-            unsigned int index_num = bitset<32>(location)[6:8];
-            unsigned int tag_num = bitset<32>(location)[8:];
-            unsigned int offset = bitset<32>(location)[0:6];
+            unsigned int index_num = (location.read() >> 6) & 0xF;
+            unsigned int tag_num = location.read() >> 10;
+            unsigned int offset = location.read() & 0x3F;
             if(rst_n.read()){
                 out_state.write(1);
                 l2_call.write(0);
@@ -41,21 +41,18 @@ SC_MODULE(L1_CACHE) {
                     if(valid[index_num]){
                         if(tag_num == tag[index_num]){
                             if(w_enable){
-                                int counter = 0;
-                                for(uint32_t a = data_in.read(); a > 0; a >>= 8){
-                                    first_mem[offset + counter] = a[0:7];
-                                    counter ++;
+                                uint32_t a = data_in.read();
+                                for(int i = 0; i < 4; i++){
+                                    first_mem[index_num][offset + i] = (a >> (8 * i)) & 0xFF;
                                 }
-                                first_mem[index_num] = i;
-                                
+                                dirty[index_num] = 1;
+                                l2_fetch.write(0);
                             }else{
-                                l2_fetch.write(first_mem[offset] + (first_mem[offset+1] << 8) + (first_mem[offset+2] << 16) + (first_mem[offset+3] << 24));
+                                l2_fetch.write(first_mem[index_num][offset] + (first_mem[index_num][offset+1] << 8) + (first_mem[index_num][offset+2] << 16) + (first_mem[index_num][offset+3] << 24));
                             }
-                            dirty[index_num] = 1;
                             l2_call.write(0);
                             replacement.write(0);
                             dirty_data.write(0);
-                            l2_fetch.write(0);
                             out_state.write(0);
                         }else{
                             next_state.write(2);
@@ -86,5 +83,41 @@ SC_MODULE(L1_CACHE) {
 
     SC_Cache(L1_CACHE){
         SC_CTHREAD(process, clk.pos());
+    }
+}
+
+SC_MODULE(L2_CACHE){
+    sc_in<bool> clk, rst_n, l2_initiated, b_dirty, l3_completed, l3_in;
+    sc_in<vector<uint8_t>> data_w;
+    sc_in<uint32_t> index_w, data_in_index;
+    sc_in<int> state_in;
+    sc_out<bool> completed_wb, l3_write_from_l2, l3_search_dirty, l2_acknowledged, l2_finished, data_out_dirty, dirt_acknowledged
+    sc_out<int> next_state;
+    sc_out<vector<uint8_t>> data_out, data_out_dirty_line;
+    sc_out <uint32_t> dataout_index, data_out_dirty_index;
+
+    vector<vector<uint32_t>> l2_mem(65536, vector<uint8_t>(64, 0));
+    vector<uint32_t> l2_tag(65536, 0);
+    vector<bool> dirty(65536, 0);
+    int idx_w = index_w[6:10];
+    int tag_w = index_2[10:];
+    
+    
+    void process(){
+        if(rst_n.read() == 0){
+            data_out.write(nullptr);
+            completed_wb.write(0);
+            next_state.write(0);
+            l3_write_from_l2.write(0);
+            l3_search_dirty.write(0);
+            dataout_index.write(0);
+            l2_acknowledged.write(0);
+            l2_finished.write(0);
+            dirt_acknowledged.write(0);
+        }else{
+            if(next_state.read == 3){
+                if(l2_tag[idx_w])
+            }
+        }
     }
 }
