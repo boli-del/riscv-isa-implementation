@@ -19,12 +19,13 @@ SC_MODULE(L1_CACHE) {
     sc_out <int> out_state, l2_call, replacement, l2_fetch, l2_fetch_index;
     sc_out <uint32_t> l2_fetch;
     sc_out <vector<uint8_t>> dirty_data
-    vector<vector<uint8_t>> first_mem (16, vector<uint8_t> (64), 0);
+    vector<vector<uint8_t>> first_mem (16, vector<uint8_t> (64, 0));
     vector<uint32_t> tag (16, 0);
     vector<bool> dirty (16, 0);
     vector<bool> valid (16, 0);
     void process(){
        while(true){
+            wait()
             unsigned int index_num = (location.read() >> 6) & 0xF;
             unsigned int tag_num = location.read() >> 10;
             unsigned int offset = location.read() & 0x3F;
@@ -96,28 +97,115 @@ SC_MODULE(L2_CACHE){
     sc_out<vector<uint8_t>> data_out, data_out_dirty_line;
     sc_out <uint32_t> dataout_index, data_out_dirty_index;
 
-    vector<vector<uint32_t>> l2_mem(65536, vector<uint8_t>(64, 0));
-    vector<uint32_t> l2_tag(65536, 0);
-    vector<bool> dirty(65536, 0);
-    int idx_w = index_w[6:10];
-    int tag_w = index_2[10:];
+    vector<vector<uint8_t>> l2_mem(16, vector<uint8_t>(64, 0));
+    vector<uint32_t> l2_tag(16, 0);
+    vector<bool> dirty(16, 0);
     
     
     void process(){
-        if(rst_n.read() == 0){
-            data_out.write(nullptr);
-            completed_wb.write(0);
-            next_state.write(0);
-            l3_write_from_l2.write(0);
-            l3_search_dirty.write(0);
-            dataout_index.write(0);
-            l2_acknowledged.write(0);
-            l2_finished.write(0);
-            dirt_acknowledged.write(0);
-        }else{
-            if(next_state.read == 3){
-                if(l2_tag[idx_w])
+        while(true){
+            wait();
+            unsigned int idx_w = (index_w >> 6) & 0x0F;
+            unsigned int idx = (data_in_index >> 6) & 0x0F;
+            unsigned int tag_w = index_w >> 10;
+            unsigned int tag = data_in_index >> 10;
+            if(rst_n.read() == 0){
+                data_out.write(nullptr);
+                completed_wb.write(0);
+                next_state.write(0);
+                l3_write_from_l2.write(0);
+                l3_search_dirty.write(0);
+                dataout_index.write(0);
+                l2_acknowledged.write(0);
+                l2_finished.write(0);
+                dirt_acknowledged.write(0);
+            }else{
+                if(state_in.read == 3){
+                    if(l2_tag[idx_w] == tag_w){
+                        l2_mem[idx_w] = data_w;
+                        dirty[idx_w] = 1;
+                        l2_acknowledged.write(0);
+                        l2_finished.write(0);
+                        next_state.write(1);
+                        dirt_acknowledged.write(1);
+                    }
+                    else{
+                        l3_search_dirty.write(1);
+                        data_out.write(data_w);
+                        dataout_index.write(index_w);
+                        completed_wb.write(0);
+                        l3_write_from_l2.write(0);
+                        l2_acknowledged.write(0);
+                        l2_finished.write(0);
+                        dirt_acknowledged.write(1);
+                        next_state.write(0);
+                    }
+                }
+                else if(state_in.read == 1){
+                    if(l2_initiated.read() == 0){
+                        next_state.write(1);
+                    }
+                    else{
+                        if(b_dirty.read()){
+                            next_state.write(3);
+                        }
+                        else if(l2_initiated.read()){
+                            l2_acknowledged.write(1);
+                            if(l2_tag[idx] == tag_in){
+                                l3_write_from_l2.write(0);
+                                dataout_index.write(data_in_index.read());
+                                data_out.write(l2_mem[idx]);
+                                l2_finished.write(1);
+                                l3_search_dirty.write(0);
+                                completed_wb.write(0);
+                                next_stage.write(1);
+                                dirt_acknowledged.write(0);
+                            }
+                            else{
+                                l3_write_from_l2.write(1);
+                                dataout_index.write(data_in_index.read());
+                                data_out.write(l2_mem[idx])
+                                completed_wb.write(0);
+                                l3_search_dirty.write(0);
+                                l2_finished.write(0);
+                                next_state.write(0);
+                                data_out_dirty.write(0);
+                            }
+                        }
+                    }
+                }
+                else if(state_in.read() == 0){
+                    if(l3_completed.read()){
+                        next_state.write(2);
+                    }
+                    else{
+                        next_state.write(0);
+                    }
+                }
+                else if(state_in.read() == 2){
+                    next_state.write(1);
+                    data_out_dirty.write(dirty[idx]);
+                    data_out_dirty_indexw
+                }
             }
+        }
+    }
+
+    SC_L2CACHE(L2_CACHE){
+        SC_CTHREAD(process, clk.pos());
+    }
+}
+
+SC_MODUlE(base_mem){
+    sc_in <bool> clk, rst_n, b_dirty;
+    sc_in <vector<uint32_t>> data_dirty;
+    sc_in <vector<uint32_t>> index_dirty, index_w;
+
+    vector<vector<uint32_t>> storage ()
+
+    void process(){
+        while(true){
+            int
         }
     }
 }
