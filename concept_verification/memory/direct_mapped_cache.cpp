@@ -1,10 +1,24 @@
-#include <systemc>
+#include <systemc.h>
 #include <vector>
 #include <bitset>
 #include <cstdint>
 #include <cassert>
 
 using namespace std;
+
+// sc_signal<T> needs operator<< for its print/dump hooks
+namespace std {
+    inline ostream& operator<<(ostream& os, const vector<uint8_t>& v){
+        for(size_t i = 0; i < v.size(); i++) os << (unsigned)v[i] << ' ';
+        return os;
+    }
+}
+
+// sc_out<T> needs an sc_trace overload for the port type; vector lines aren't
+// traceable to VCD, so this is a no-op
+namespace sc_core {
+    inline void sc_trace(sc_trace_file*, const std::vector<uint8_t>&, const std::string&){}
+}
 
 //verifying the caches under the same size for now
 SC_MODULE(L1_CACHE) {
@@ -16,7 +30,8 @@ SC_MODULE(L1_CACHE) {
     sc_in<uint32_t> data_in;
     sc_in<uint32_t> location;
     sc_in<int> cache_location, state_in;
-    sc_out <int> out_state, l2_call, replacement, l2_fetch_index, next_state;
+    sc_out <int> out_state, l2_fetch_index, next_state;
+    sc_out <bool> l2_call, replacement;
     sc_out <uint32_t> l2_fetch;
     sc_out <vector<uint8_t>> dirty_data;
     vector<vector<uint8_t>> first_mem = vector<vector<uint8_t>>(16, vector<uint8_t>(64, 0));
@@ -29,7 +44,7 @@ SC_MODULE(L1_CACHE) {
             unsigned int index_num = (location.read() >> 6) & 0xF;
             unsigned int tag_num = location.read() >> 10;
             unsigned int offset = location.read() & 0x3F;
-            if(rst_n.read()){
+            if(!rst_n.read()){
                 out_state.write(1);
                 l2_call.write(0);
                 replacement.write(0);
@@ -80,7 +95,8 @@ SC_MODULE(L1_CACHE) {
                         next_state.write(1);
                     }else{
                         out_state.write(2);
-                        l2_call.write(0);
+                        l2_call.write(1);
+                        replacement.write(0);
                     }
                 }
             }
@@ -90,7 +106,7 @@ SC_MODULE(L1_CACHE) {
     SC_CTOR(L1_CACHE){
         SC_CTHREAD(process, clk.pos());
     }
-}
+};
 
 SC_MODULE(L2_CACHE){
     sc_in<bool> clk, rst_n, l2_initiated, b_dirty, l3_completed;
@@ -105,6 +121,7 @@ SC_MODULE(L2_CACHE){
     vector<vector<uint8_t>> l2_mem = vector<vector<uint8_t>>(16, vector<uint8_t>(64, 0));
     vector<uint32_t> l2_tag = vector<uint32_t>(16, 0);
     vector<bool> dirty = vector<bool>(16, 0);
+    vector<bool> valid = vector<bool>(16, 0);
     
     
     void process(){
@@ -126,7 +143,7 @@ SC_MODULE(L2_CACHE){
                 dirt_acknowledged.write(0);
             }else{
                 if(state_in.read() == 3){
-                    if(l2_tag[idx_w] == tag_w){
+                    if(valid[idx_w] && l2_tag[idx_w] == tag_w){
                         l2_mem[idx_w] = data_w.read();
                         dirty[idx_w] = 1;
                         l2_acknowledged.write(0);
@@ -149,6 +166,7 @@ SC_MODULE(L2_CACHE){
                 else if(state_in.read() == 1){
                     if(l2_initiated.read() == 0){
                         next_state.write(1);
+                        l2_finished.write(0);
                     }
                     else{
                         if(b_dirty.read()){
@@ -156,7 +174,7 @@ SC_MODULE(L2_CACHE){
                         }
                         else if(l2_initiated.read()){
                             l2_acknowledged.write(1);
-                            if(l2_tag[idx] == tag){
+                            if(valid[idx] && l2_tag[idx] == tag){
                                 l3_write_from_l2.write(0);
                                 dataout_index.write(data_in_index.read());
                                 data_out.write(l2_mem[idx]);
@@ -194,6 +212,7 @@ SC_MODULE(L2_CACHE){
                     data_out_dirty_line.write(l2_mem[idx]);
                     l2_mem[idx] = l3_in.read();
                     l2_tag[idx] = tag;
+                    valid[idx] = 1;
                     dirty[idx] = 0;
                 }
             }
@@ -203,7 +222,7 @@ SC_MODULE(L2_CACHE){
     SC_CTOR(L2_CACHE){
         SC_CTHREAD(process, clk.pos());
     }
-}
+};
 
 SC_MODULE(base_mem){
     sc_in <bool> clk, rst_n, b_dirty;
@@ -242,5 +261,5 @@ SC_MODULE(base_mem){
     SC_CTOR(base_mem){
         SC_CTHREAD(process, clk.pos());
     }
-}
+};
 
