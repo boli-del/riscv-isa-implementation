@@ -308,7 +308,7 @@ module l2_l3_top(
     output l3_write_from_l2
 );
     wire [31:0] l2_read_index;
-    wire        l2_victim_dirty;
+    wire l2_victim_dirty;
     wire [511:0] l2_victim_line;
     wire [31:0] l2_victim_index;
     wire [511:0] l3_line;
