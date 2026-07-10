@@ -87,9 +87,7 @@ SC_MODULE(L1_CACHE){
                         int max_locality = 0, max_idx = 0;
                         for(int i = 0; i < 16; i++){
                             if(used_locality[i] > max_locality){
-                                //max of the locality determination
                                 max_locality = used_locality[i];
-                                //maximum of the index of the locality determination
                                 max_idx = i;
                             }
                         }
