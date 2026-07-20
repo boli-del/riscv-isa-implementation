@@ -8,6 +8,8 @@ SC_MODULE(TRAFFIC_GEN){
     sc_in<uint32_t> rdata;
     sc_in<int> l1_state;
     unsigned errors = 0;
+    unsigned long n_access = 0, n_l1_miss = 0, n_l2_miss = 0;
+    unsigned long cyc_total = 0, cyc_l1_hit = 0, cyc_l2_hit = 0, cyc_mem = 0;
     static uint32_t pattern_word(uint32_t a){
         return (a & 0xFF) | (((a+1) & 0xFF) << 8) | (((a+2) & 0xFF) << 16) | (((a+3) & 0xFF) << 24);
     }
@@ -28,23 +30,29 @@ SC_MODULE(TRAFFIC_GEN){
             }
         }
         wait(); cycles++;
+        n_access++;
+        cyc_total += cycles;
+        if(cycles <= 3)      cyc_l1_hit += cycles;
+        else if(cycles < 8){ cyc_l2_hit += cycles; n_l1_miss++; }
+        else               { cyc_mem += cycles; n_l1_miss++; n_l2_miss++; }
         return rdata.read();
     }
 
-    void sweep(const char* name, uint32_t base, uint32_t bytes){
+    void sweep(const char* name, uint32_t base, uint32_t bytes, bool inverted = false){
         unsigned long total = 0;
         unsigned n = 0, mn = ~0u, mx = 0, c;
         for(uint32_t a = base; a < base + bytes; a += 4){
             uint32_t r = access(a, false, 0, c);
-            if(r != pattern_word(a)){
+            uint32_t exp = inverted ? ~pattern_word(a) : pattern_word(a);
+            if(r != exp){
                 errors++;
                 cout << "  MISMATCH addr 0x" << hex << a << " got 0x" << r
-                     << " expected 0x" << pattern_word(a) << dec << endl;
+                     << " expected 0x" << exp << dec << endl;
             }
             total += c; n++;
             mn = min(mn, c); mx = max(mx, c);
         }
-        cout << left << setw(34) << name << " avg " << fixed << setprecision(2)
+        cout << left << setw(38) << name << " avg " << fixed << setprecision(2)
              << (double)total / n << " cyc  (min " << mn << ", max " << mx
              << ", n=" << n << ")" << endl;
     }
@@ -73,7 +81,18 @@ SC_MODULE(TRAFFIC_GEN){
                 if(access(a, false, 0, c) != pattern_word(a)) errors++;
                 total += c; n++;
             }
-            cout << left << setw(34) << "thrash 0x000/0x400 (all miss)" << " avg "
+            cout << left << setw(38) << "alternating 0x000/0x400 (2 tags)" << " avg "
+                 << fixed << setprecision(2) << (double)total / n << " cyc  (n=" << n << ")" << endl;
+        }
+
+        {
+            unsigned long total = 0; unsigned n = 0;
+            for(int i = 0; i < 30; i++){
+                uint32_t a = (i % 5) * 0x100;
+                if(access(a, false, 0, c) != pattern_word(a)) errors++;
+                total += c; n++;
+            }
+            cout << left << setw(38) << "5-tag conflict cycle 0x000-0x400" << " avg "
                  << fixed << setprecision(2) << (double)total / n << " cyc  (n=" << n << ")" << endl;
         }
 
@@ -83,10 +102,36 @@ SC_MODULE(TRAFFIC_GEN){
             unsigned bad = 0;
             for(uint32_t a = 0; a < 512; a += 4)
                 if(access(a, false, 0, c) != (uint32_t)~pattern_word(a)) bad++;
-            cout << left << setw(34) << "write-hit readback" << (bad ? " FAILED, " : " ok, ")
+            cout << left << setw(38) << "write-hit readback" << (bad ? " FAILED, " : " ok, ")
                  << bad << " bad words" << endl;
             errors += bad;
         }
+
+        sweep("evict dirty lines (sweep upper 1KB)", 1024, 1024);
+        sweep("dirty writeback readback", 0, 512, true);
+
+        unsigned long n_l1_hit = n_access - n_l1_miss;
+        unsigned long n_l2_hit = n_l1_miss - n_l2_miss;
+        double mr1 = (double)n_l1_miss / n_access;
+        double mr2 = (double)n_l2_miss / n_l1_miss;
+        double t_hit = (double)cyc_l1_hit / n_l1_hit;
+        double t_l2 = (double)cyc_l2_hit / n_l2_hit;
+        double t_mem = (double)cyc_mem / n_l2_miss;
+        cout << endl << "AMAT over full run (" << n_access << " accesses):" << endl;
+        cout << "  L1 hit time        " << fixed << setprecision(2) << t_hit << " cyc  ("
+             << n_l1_hit << " hits)" << endl;
+        cout << "  L1 miss rate       " << setprecision(4) << mr1
+             << "  (" << n_l1_miss << " misses)" << endl;
+        cout << "  L2 hit latency     " << setprecision(2) << t_l2 << " cyc  ("
+             << n_l2_hit << " hits, +" << t_l2 - t_hit << " over L1 hit)" << endl;
+        cout << "  L2 local miss rate " << setprecision(4) << mr2
+             << "  (" << n_l2_miss << " to mem)" << endl;
+        cout << "  mem latency        " << setprecision(2) << t_mem << " cyc  (+"
+             << t_mem - t_l2 << " over L2 hit)" << endl;
+        cout << "  AMAT = " << t_hit << " + " << setprecision(4) << mr1 << " * ("
+             << setprecision(2) << t_l2 - t_hit << " + " << setprecision(4) << mr2
+             << " * " << setprecision(2) << t_mem - t_l2 << ") = "
+             << (double)cyc_total / n_access << " cyc" << endl;
 
         cout << endl << (errors ? "RESULT: FAIL (" : "RESULT: PASS (") << errors
              << " data errors)" << endl;
@@ -108,7 +153,8 @@ int sc_main(int, char**){
     sc_signal<bool> l2_evict_dirty, l3_completed;
     sc_signal<uint32_t> l2_mem_addr, l2_evict_addr;
     sc_signal<vector<uint8_t>> mem_data_out, l2_evict_line;
-    sc_signal<int> l1_out_state, l1_fetch_index, unused_cache_location;
+    sc_signal<int> l1_out_state, unused_cache_location;
+    sc_signal<uint32_t> l1_victim_addr;
     sc_signal<bool> l2_completed_wb, l3_write_from_l2, l3_search_dirty, l2_acknowledged, dirt_acknowledged, mem_finished_writing, mem_acknowledged;
     sc_signal<uint32_t> mem_dataout_index;
 
@@ -121,13 +167,13 @@ int sc_main(int, char**){
     l1.l2_call(l2_call); l1.replacement(replacement);
     l1.dirty_data(l1_victim_line);
     l1.l2_write_finished(l2_finished); l1.l2_in_data(l2_data_out);
-    l1.l2_fetch(rdata); l1.l2_fetch_index(l1_fetch_index);
+    l1.l2_fetch(rdata); l1.l2_fetch_index(l1_victim_addr);
 
     L2_CACHE l2("l2");
     l2.clk(clk); l2.rst_n(rst_n);
     l2.l2_initiated(l2_call); l2.b_dirty(replacement);
     l2.data_w(l1_victim_line);
-    l2.index_w(addr); l2.data_in_index(addr);
+    l2.index_w(l1_victim_addr); l2.data_in_index(addr);
     l2.state_in(l2_state); l2.next_state(l2_state);
     l2.data_out(l2_data_out); l2.l2_finished(l2_finished);
     l2.l3_in(mem_data_out); l2.l3_completed(l3_completed);

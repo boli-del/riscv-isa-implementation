@@ -1,5 +1,5 @@
 name: run_coverage_against_diff
-on: push
+on: pull_request
 jobs:
     test:
         runs-on: ubuntu-latest

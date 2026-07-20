@@ -1,14 +1,12 @@
-#include "fully_associative_cache.cpp"
+#include "4_way_set_associative.cpp"
 #include <iostream>
 #include <iomanip>
-
-//file mostly copied from last cache top
 
 SC_MODULE(TRAFFIC_GEN){
     sc_in<bool> clk;
     sc_out<bool> rst_n, w_enable;
-    sc_out<uint32_t> location, data_in;
-    sc_in<uint32_t> rdata;
+    sc_out<sc_bv<32>> location, data_in;
+    sc_in<sc_bv<32>> rdata;
     sc_in<int> l1_state;
     unsigned errors = 0;
     unsigned long n_access = 0, n_l1_miss = 0, n_l2_miss = 0;
@@ -38,7 +36,7 @@ SC_MODULE(TRAFFIC_GEN){
         if(cycles <= 3)      cyc_l1_hit += cycles;
         else if(cycles < 9){ cyc_l2_hit += cycles; n_l1_miss++; }
         else               { cyc_mem += cycles; n_l1_miss++; n_l2_miss++; }
-        return rdata.read();
+        return rdata.read().to_uint();
     }
 
     void sweep(const char* name, uint32_t base, uint32_t bytes, bool inverted = false){
@@ -149,16 +147,16 @@ SC_MODULE(TRAFFIC_GEN){
 int sc_main(int, char**){
     sc_clock clk("clk", 10, SC_NS);
     sc_signal<bool> rst_n, w_enable;
-    sc_signal<uint32_t> addr, wdata, rdata;
+    sc_signal<sc_bv<32>> addr, wdata, rdata;
     sc_signal<int> l1_state, l2_state;
     sc_signal<bool> l2_call, replacement, l2_finished;
     sc_signal<sc_bv<512>> l1_victim_line, l2_data_out;
     sc_signal<bool> l2_evict_dirty, l3_completed;
-    sc_signal<uint32_t> l2_mem_addr, l2_evict_addr, l1_victim_addr, l1_fetch_flag;
+    sc_signal<sc_bv<32>> l2_mem_addr, l2_evict_addr, l1_victim_addr, l1_fetch_flag;
     sc_signal<sc_bv<512>> mem_data_out, l2_evict_line;
     sc_signal<int> l1_out_state, unused_cache_location;
     sc_signal<bool> l2_completed_wb, l3_write_from_l2, l3_search_dirty, l2_acknowledged, dirt_acknowledged, mem_finished_writing, mem_acknowledged;
-    sc_signal<uint32_t> mem_dataout_index;
+    sc_signal<sc_bv<32>> mem_dataout_index;
 
     L1_CACHE l1("l1");
     l1.clk(clk); l1.rst_n(rst_n);
@@ -201,16 +199,21 @@ int sc_main(int, char**){
     gen.location(addr); gen.data_in(wdata);
     gen.rdata(rdata); gen.l1_state(l1_state);
 
-    for(unsigned line = 0; line < 32; line++)
+    for(unsigned line = 0; line < 32; line++){
+        unsigned s = line & 3, w = line >> 2;
+        mem.tag[s][w] = line >> 2;
+        mem.valid[s][w] = true;
         for(unsigned b = 0; b < 64; b++)
-            mem.storage[line].range(b*8 + 7, b*8) = (line * 64 + b) & 0xFF;
-    for(unsigned i = 0; i < 16; i++){
-        l2.l2_mem[i] = mem.storage[i];
-        l2.l2_tag[i] = i;
-        l2.valid[i] = 1;
+            mem.storage[s][w].range(b*8 + 7, b*8) = (line * 64 + b) & 0xFF;
+    }
+    for(unsigned line = 0; line < 16; line++){
+        unsigned s = line & 3, w = line >> 2;
+        l2.l2_tag[s][w] = line >> 2;
+        l2.valid[s][w] = true;
+        l2.l2_mem[s][w] = mem.storage[s][line >> 2];
     }
 
-    sc_trace_file* tf = sc_create_vcd_trace_file("fully_associative_top");
+    sc_trace_file* tf = sc_create_vcd_trace_file("4_way_set_associative_top");
     sc_trace(tf, clk, "clk");
     sc_trace(tf, rst_n, "rst_n");
     sc_trace(tf, addr, "addr");

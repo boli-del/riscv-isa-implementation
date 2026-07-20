@@ -125,7 +125,6 @@ SC_MODULE(L1_CACHE){
                         // state and must still see l2_initiated to serve this miss
                         l2_call.write(1);
                         replacement.write(0);
-                        dirty_data.write(0);
                         l2_fetch.write(0);
                     }
                 }
@@ -209,15 +208,15 @@ SC_MODULE(L2_CACHE){
                         next_state.write(1);
                         dirt_acknowledged.write(1);
                     }else{
-                        l3_search_dirty.write(1);
-                        data_out.write(data_w.read());
-                        dataout_index.write(index_w.read());
+                        data_out_dirty.write(1);
+                        data_out_dirty_line.write(data_w.read());
+                        data_out_dirty_index.write(index_w.read());
                         completed_wb.write(0);
                         l3_write_from_l2.write(0);
                         l2_acknowledged.write(0);
                         l2_finished.write(0);
                         dirt_acknowledged.write(1);
-                        next_state.write(0);
+                        next_state.write(1);
                     }
                 }
                 else if(state_in.read() == 1){
