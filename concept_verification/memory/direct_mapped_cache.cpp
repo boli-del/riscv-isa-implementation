@@ -30,7 +30,8 @@ SC_MODULE(L1_CACHE) {
     sc_in<uint32_t> data_in;
     sc_in<uint32_t> location;
     sc_in<int> cache_location, state_in;
-    sc_out <int> out_state, l2_fetch_index, next_state;
+    sc_out <int> out_state, next_state;
+    sc_out <uint32_t> l2_fetch_index;
     sc_out <bool> l2_call, replacement;
     sc_out <uint32_t> l2_fetch;
     sc_out <vector<uint8_t>> dirty_data;
@@ -76,6 +77,7 @@ SC_MODULE(L1_CACHE) {
                             l2_call.write(1);
                             replacement.write(dirty[index_num]);
                             dirty_data.write(first_mem[index_num]);
+                            l2_fetch_index.write((tag[index_num] << 10) | (index_num << 6));
                         }
                     }else{
                         next_state.write(2);
@@ -152,15 +154,15 @@ SC_MODULE(L2_CACHE){
                         dirt_acknowledged.write(1);
                     }
                     else{
-                        l3_search_dirty.write(1);
-                        data_out.write(data_w.read());
-                        dataout_index.write(index_w.read());
+                        data_out_dirty.write(1);
+                        data_out_dirty_line.write(data_w.read());
+                        data_out_dirty_index.write(index_w.read());
                         completed_wb.write(0);
                         l3_write_from_l2.write(0);
                         l2_acknowledged.write(0);
                         l2_finished.write(0);
                         dirt_acknowledged.write(1);
-                        next_state.write(0);
+                        next_state.write(1);
                     }
                 }
                 else if(state_in.read() == 1){

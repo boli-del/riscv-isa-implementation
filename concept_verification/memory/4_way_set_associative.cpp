@@ -20,7 +20,7 @@ SC_MODULE(L1_CACHE){
     vector<vector<bool>> dirty = vector<vector<bool>>(4, vector<bool>(4, false));
     vector<vector<uint32_t>> tag = vector<vector<uint32_t>>(4, vector<uint32_t>(4, 0));
     vector<vector<int>> cell_locality = vector<vector<int>>(4, vector<int>(4, 0));
-    int victim_idx = -1;
+    int victim_idx = 0;
 
     int row_least_local(int set){
         int highest_loc = -1;
@@ -112,7 +112,6 @@ SC_MODULE(L1_CACHE){
                         out_state.write(0);
                         l2_call.write(1);
                         replacement.write(0);
-                        dirty_data.write(0);
                         l2_fetch.write(0);
                     }
                 }else if(state_in.read() == 2){
@@ -148,7 +147,7 @@ SC_MODULE(L2_CACHE){
     vector<vector<bool>> dirty = vector<vector<bool>>(4, vector<bool>(4, false));
     vector<vector<bool>> valid = vector<vector<bool>>(4, vector<bool>(4, false));
     vector<vector<int>> used_locality = vector<vector<int>>(4, vector<int>(4, 0));
-    int victim_idx = -1;
+    int victim_idx = 0;
 
     int row_least_local(int set){
         int highest_loc = -1;
@@ -210,15 +209,15 @@ SC_MODULE(L2_CACHE){
                         next_state.write(1);
                         dirt_acknowledged.write(1);
                     }else{
-                        l3_search_dirty.write(1);
-                        data_out.write(data_w.read());
-                        dataout_index.write(index_w.read());
+                        data_out_dirty.write(1);
+                        data_out_dirty_line.write(data_w.read());
+                        data_out_dirty_index.write(index_w.read());
                         completed_wb.write(0);
                         l3_write_from_l2.write(0);
                         l2_acknowledged.write(0);
                         l2_finished.write(0);
                         dirt_acknowledged.write(1);
-                        next_state.write(0);
+                        next_state.write(1);
                     }
                 }
                 else if(state_in.read() == 1){
@@ -277,6 +276,67 @@ SC_MODULE(L2_CACHE){
     }
 
     SC_CTOR(L2_CACHE){
+        SC_CTHREAD(process, clk.pos());
+    }
+};
+
+SC_MODULE(BASE_MEM){
+    sc_in <bool> clk, rst_n, b_dirty;
+    sc_in <sc_bv<512>> data_dirty;
+    sc_in <sc_bv<32>> index_dirty, index_w;
+    sc_out <sc_bv<512>> data_out;
+    sc_out <sc_bv<32>> dataout_index;
+    sc_out <bool> l3_completed, l3_finished_writing, l3_acknowledged;
+    vector<vector<sc_bv<512>>> storage = vector<vector<sc_bv<512>>>(4, vector<sc_bv<512>>(8));
+    vector<vector<uint32_t>> tag = vector<vector<uint32_t>>(4, vector<uint32_t>(8, 0));
+    vector<vector<bool>> valid = vector<vector<bool>>(4, vector<bool>(8, false));
+
+    int fetch_index(int set, uint32_t tag_num){
+        for(int i = 0; i < 8; i++){
+            if(valid[set][i] && tag[set][i] == tag_num){
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    void process(){
+        while(true){
+            wait();
+            uint32_t addr_mem = index_w.read().to_uint();
+            uint32_t addr_dirty = index_dirty.read().to_uint();
+            uint32_t tag_mem = addr_mem >> 8;
+            int idx_mem = (addr_mem >> 6) & 0x03;
+            uint32_t tag_dirty = addr_dirty >> 8;
+            int idx_dirty = (addr_dirty >> 6) & 0x03;
+            if(rst_n.read() == 0){
+                dataout_index.write(0);
+                l3_completed.write(0);
+                l3_finished_writing.write(0);
+                l3_acknowledged.write(0);
+            }else{
+                l3_acknowledged.write(1);
+                if(b_dirty.read()){
+                    int index = fetch_index(idx_dirty, tag_dirty);
+                    if(index != -1){
+                        storage[idx_dirty][index] = data_dirty.read();
+                    }
+                    l3_finished_writing.write(1);
+                    l3_completed.write(0);
+                }else{
+                    int index = fetch_index(idx_mem, tag_mem);
+                    if(index != -1){
+                        data_out.write(storage[idx_mem][index]);
+                        dataout_index.write(index_w.read());
+                    }
+                    l3_completed.write(1);
+                    l3_finished_writing.write(0);
+                }
+            }
+        }
+    }
+
+    SC_CTOR(BASE_MEM){
         SC_CTHREAD(process, clk.pos());
     }
 };
