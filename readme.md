@@ -1,32 +1,40 @@
 ## Cache Performances
 ### Direct Mapped Cache
-512B cold (L1 miss / L2 hit) avg 3.11 cyc (min 3, max 5, n=128)
 
-512B warm (L1 hit) avg 3.00 cyc (min 3, max 3, n=128)
+L1 hit time        3.00 cyc  (1623 hits)
 
-next 512B (L1 miss / L2 hit) avg 3.12 cyc (min 3, max 5, n=128)
+L1 miss rate       0.0597  (103 misses)
 
-upper 1KB (L1 miss / L2 miss) avg 3.31 cyc (min 3, max 8, n=256) / fetch from base mem
+L2 hit latency     5.00 cyc  (15 hits, +2.00 over L1 hit)
 
-upper 1KB warm (L1 hit) avg 3.00 cyc (min 3, max 3, n=256)
+L2 local miss rate 0.8544  (88 to mem)
 
-thrash 0x000/0x400 (all miss) avg 8.00 cyc (n=32) / no fetch from anywhere
+mem latency        8.27 cyc  (+3.27 over L2 hit)
 
-Calculated AMAT: 3.12 cyc
+AMAT = 3.00 + 0.0597 * (2.00 + 0.8544 * 3.27) = 3.29 cyc
 
 ### Fully Associative Cache
-512B cold  (L1 miss / L2 hit)      avg 3.16 cyc  (min 3, max 6, n=128)
+L1 hit time        3.00 cyc  (1661 hits)
 
-512B warm  (L1 hit)                avg 3.00 cyc  (min 3, max 3, n=128)
+L1 miss rate       0.0377  (65 misses)
 
-next 512B  (L1 miss / L2 hit)      avg 3.19 cyc  (min 3, max 6, n=128)
+L2 hit latency     6.00 cyc  (18 hits, +3.00 over L1 hit)
 
-upper 1KB  (L1 miss / L2 miss)     avg 3.38 cyc  (min 3, max 9, n=256)
+L2 local miss rate 0.7231  (47 to mem)
 
-upper 1KB warm (L1 hit)            avg 3.00 cyc  (min 3, max 3, n=256)
+mem latency        9.45 cyc  (+3.45 over L2 hit)
 
-alternating between 0x000/0x400 (FA: hits)   avg 3.38 cyc  (n=32)   (testing associativity)
+AMAT = 3.00 + 0.0377 * (3.00 + 0.7231 * 3.45) = 3.21 cyc
 
-refill 512B                        avg 3.33 cyc  (min 3, max 9, n=128)
+### 4 Way Set Associative Cache
+L1 hit time        3.00 cyc  (1633 hits)
 
-Calculated AMAT: 3.16 cyc
+L1 miss rate       0.0539  (93 misses)
+
+L2 hit latency     6.00 cyc  (21 hits, +3.00 over L1 hit)
+
+L2 local miss rate 0.7742  (72 to mem)
+
+mem latency        9.26 cyc  (+3.26 over L2 hit)
+
+AMAT = 3.00 + 0.0539 * (3.00 + 0.7742 * 3.26) = 3.30 cyc
