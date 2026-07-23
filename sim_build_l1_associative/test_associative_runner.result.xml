@@ -1,0 +1,6 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1784839090" />
+    <testcase name="test_l1_cache" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="6" time="0.017539024353027344" sim_time_ns="2.2" ratio_time="125.4345712576804" />
+  </testsuite>
+</testsuites>

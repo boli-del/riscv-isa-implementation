@@ -17,6 +17,22 @@ def test_add_runner():
     )
     runner.test(hdl_toplevel="top_module", test_module = ["test_add", "test_r_type"], waves = True)
 
+def test_associative_runner():
+    sim = os.getenv("SIM", "icarus")
+    proj_path = Path(__file__).resolve().parent.parent
+    sources = [proj_path/"rtl"/"src"/"fully_associative.v"]
+    runner = get_runner(sim)
+    runner.build(
+        sources = sources,
+        hdl_toplevel = "l1_cache",
+        build_dir = "sim_build_l1_associative",
+        always = True,
+        build_args = ["--coverage"] if sim == "verilator" else [],
+        waves = True
+    )
+    runner.test(hdl_toplevel = "l1_cache", test_module = ["test_associative_mem"], waves = True)
+
+
 def test_mem_runner():
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent.parent
@@ -63,4 +79,5 @@ def test_mem_runner():
 
 if __name__ == "__main__":
     test_add_runner()
+    test_associative_runner()
     test_mem_runner()
