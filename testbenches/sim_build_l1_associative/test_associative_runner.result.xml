@@ -1,0 +1,9 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1784917871" />
+    <testcase name="test_l1_cache" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="6" time="0.009507894515991211" sim_time_ns="2.2" ratio_time="231.38666466059834" />
+    <testcase name="test_l1_read" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="27" time="0.00290679931640625" sim_time_ns="1.1999999999999997" ratio_time="412.8251968503936">
+      <failure error_type="AttributeError" error_msg="l1_cache contains no child object named locaion" />
+    </testcase>
+  </testsuite>
+</testsuites>
