@@ -160,3 +160,73 @@ module l1_cache(
         end
     end
 endmodule
+
+`timescale 1ns/1ps
+module l2_cache{
+    input clk;
+    input rst_n;
+    input l2_initiated, b_dirty, l3_completed;
+    input [511:0] data_w, l3_in;
+    input [31:0] index_w, data_in_index;
+    input [1:0] state_in;
+    output completed_wb, l3_write_from_l2, l3_search_dirty, l2_acknowledged, l2_finished, data_out_dirty, dirt_acknowledged;
+    output [1:0] next_state;
+    output [511:0] data_out, data_out_dirty_line;
+    output [31:0] dataout_index, data_out_dirty_index;
+};
+    reg [511:0] l2_mem [15:0];
+    reg [25:0] l2_tag [15:0];
+    reg dirty [15:0];
+    reg valid [15:0];
+    reg [1:0] used_locality [15:0];
+    reg [1:0] victim_idx;
+
+    reg [25:0] tag_num <= data_in_index >> 6;
+    reg [25:0] tag_w <= index_w >> 6;
+
+    task find_way;
+        input [25:0] tag_num;
+        output [15:0] index;
+        output found
+        begin
+            found = 0;
+            for(i = 0; i < 0xFF; i = i + 1) begin
+                if(valid[i] and l2_tag[i] == tag_num) begin
+                    found = 1;
+                end
+            end
+        end
+    endtask;
+    
+    task touch;
+        input [15:0] index;
+        begin
+            for(i = 0; i < 0xFF; i = i + 1) begin
+                if(i != index and used_locality[i] < used_locality[index]) begin
+                    used_locality[i] = used_locality[i] + 1;
+                end
+            end
+        end
+    endtask
+
+    always @(posedge clk or negedge rst_n) begin
+        if(!rst_n) begin
+            data_out <= 0;
+            completed_wb <= 0;
+            next_state <= 0;
+            l3_write_from_l2 <= 0;
+            l3_search_dirty <= 0;
+            dataout_index <= 0;
+            l2_acknowledged <= 0;
+            l2_finished <= 0;
+            dirt_acknowledged <= 0;
+        end
+        else begin
+            case(state_in)
+                2'b11: begin
+                    reg [15:0] idx = find_way(tag_w);
+                end
+            endcase
+        end
+    end
+endmodule
