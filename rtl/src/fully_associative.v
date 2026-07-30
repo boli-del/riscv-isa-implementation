@@ -162,48 +162,74 @@ module l1_cache(
 endmodule
 
 `timescale 1ns/1ps
-module l2_cache{
-    input clk;
-    input rst_n;
-    input l2_initiated, b_dirty, l3_completed;
-    input [511:0] data_w, l3_in;
-    input [31:0] index_w, data_in_index;
-    input [1:0] state_in;
-    output completed_wb, l3_write_from_l2, l3_search_dirty, l2_acknowledged, l2_finished, data_out_dirty, dirt_acknowledged;
-    output [1:0] next_state;
-    output [511:0] data_out, data_out_dirty_line;
-    output [31:0] dataout_index, data_out_dirty_index;
-};
-    reg [511:0] l2_mem [15:0];
-    reg [25:0] l2_tag [15:0];
-    reg dirty [15:0];
-    reg valid [15:0];
-    reg [1:0] used_locality [15:0];
-    reg [1:0] victim_idx;
+module l2_cache(
+    input clk,
+    input rst_n,
+    input l2_initiated, b_dirty, l3_completed,
+    input [511:0] data_w, l3_in,
+    input [31:0] index_w, data_in_index,
+    input [1:0] state_in,
+    output reg completed_wb, l3_write_from_l2, l3_search_dirty, l2_acknowledged, l2_finished, data_out_dirty, dirt_acknowledged,
+    output reg [1:0] next_state,
+    output reg [511:0] data_out, data_out_dirty_line,
+    output reg [31:0] dataout_index, data_out_dirty_index
+);
+    parameter LINES = 64;
+    parameter IDX_W = 6;
 
-    reg [25:0] tag_num <= data_in_index >> 6;
-    reg [25:0] tag_w <= index_w >> 6;
+    reg [511:0] l2_mem [0:LINES-1];
+    reg [25:0] l2_tag [0:LINES-1];
+    reg dirty [0:LINES-1];
+    reg valid [0:LINES-1];
+    reg [IDX_W-1:0] used_locality [0:LINES-1];
+
+    reg [IDX_W-1:0] victim_idx;
+    reg [IDX_W-1:0] idx;
+    reg [IDX_W-1:0] max_idx;
+    reg found;
+    integer i;
+
+    wire [25:0] tag_num = data_in_index[31:6];
+    wire [25:0] tag_w = index_w[31:6];
 
     task find_way;
-        input [25:0] tag_num;
-        output [15:0] index;
-        output found
+        input [25:0] tag_find;
+        output [IDX_W-1:0] index;
+        output hit;
+        integer a;
         begin
-            found = 0;
-            for(i = 0; i < 0xFF; i = i + 1) begin
-                if(valid[i] and l2_tag[i] == tag_num) begin
-                    found = 1;
+            index = 0;
+            hit = 0;
+            for(a = 0; a < LINES; a = a + 1) begin
+                if(valid[a] && l2_tag[a] == tag_find) begin
+                    index = a[IDX_W-1:0];
+                    hit = 1;
                 end
             end
         end
-    endtask;
-    
+    endtask
+
     task touch;
-        input [15:0] index;
+        input [IDX_W-1:0] index;
+        integer a;
         begin
-            for(i = 0; i < 0xFF; i = i + 1) begin
-                if(i != index and used_locality[i] < used_locality[index]) begin
-                    used_locality[i] = used_locality[i] + 1;
+            for(a = 0; a < LINES; a = a + 1) begin
+                if(used_locality[a] < used_locality[index]) begin
+                    used_locality[a] <= used_locality[a] + 1;
+                end
+            end
+            used_locality[index] <= 0;
+        end
+    endtask
+
+    task least_local;
+        output [IDX_W-1:0] out_index;
+        integer a;
+        begin
+            out_index = 0;
+            for(a = 0; a < LINES; a = a + 1) begin
+                if(used_locality[a] > used_locality[out_index]) begin
+                    out_index = a[IDX_W-1:0];
                 end
             end
         end
@@ -213,20 +239,109 @@ module l2_cache{
         if(!rst_n) begin
             data_out <= 0;
             completed_wb <= 0;
-            next_state <= 0;
+            next_state <= 2'b01;
             l3_write_from_l2 <= 0;
             l3_search_dirty <= 0;
             dataout_index <= 0;
             l2_acknowledged <= 0;
             l2_finished <= 0;
+            data_out_dirty <= 0;
             dirt_acknowledged <= 0;
+            victim_idx <= 0;
+            for(i = 0; i < LINES; i = i + 1) begin
+                valid[i] <= 0;
+                dirty[i] <= 0;
+                used_locality[i] <= i[IDX_W-1:0];
+            end
         end
         else begin
             case(state_in)
                 2'b11: begin
-                    reg [15:0] idx = find_way(tag_w);
+                    find_way(tag_w, idx, found);
+                    if(found) begin
+                        l2_mem[idx] <= data_w;
+                        dirty[idx] <= 1;
+                        touch(idx);
+                        data_out_dirty <= 0;
+                        l3_search_dirty <= 0;
+                        l3_write_from_l2 <= 0;
+                        l2_acknowledged <= 0;
+                        l2_finished <= 0;
+                        next_state <= 2'b01;
+                        dirt_acknowledged <= 1;
+                    end
+                    else begin
+                        data_out_dirty <= 1;
+                        data_out_dirty_line <= data_w;
+                        data_out_dirty_index <= index_w;
+                        l3_search_dirty <= 1;
+                        completed_wb <= 0;
+                        l3_write_from_l2 <= 0;
+                        l2_acknowledged <= 0;
+                        l2_finished <= 0;
+                        dirt_acknowledged <= 1;
+                        next_state <= 2'b01;
+                    end
+                end
+                2'b01: begin
+                    if(b_dirty) begin
+                        next_state <= 2'b11;
+                        l2_finished <= 0;
+                    end
+                    else if(!l2_initiated) begin
+                        next_state <= 2'b01;
+                        l2_finished <= 0;
+                    end
+                    else begin
+                        l2_acknowledged <= 1;
+                        find_way(tag_num, idx, found);
+                        if(found) begin
+                            touch(idx);
+                            l3_write_from_l2 <= 0;
+                            dataout_index <= data_in_index;
+                            data_out <= l2_mem[idx];
+                            l2_finished <= 1;
+                            l3_search_dirty <= 0;
+                            completed_wb <= 0;
+                            next_state <= 2'b01;
+                            dirt_acknowledged <= 0;
+                        end
+                        else begin
+                            least_local(max_idx);
+                            victim_idx <= max_idx;
+                            l3_write_from_l2 <= 1;
+                            dataout_index <= data_in_index;
+                            completed_wb <= 0;
+                            l3_search_dirty <= 0;
+                            l2_finished <= 0;
+                            next_state <= 2'b00;
+                            data_out_dirty <= 0;
+                        end
+                    end
+                end
+                2'b00: begin
+                    if(l3_completed) begin
+                        next_state <= 2'b10;
+                        l3_write_from_l2 <= 0;
+                    end
+                    else begin
+                        next_state <= 2'b00;
+                    end
+                end
+                2'b10: begin
+                    data_out_dirty <= dirty[victim_idx];
+                    data_out_dirty_index <= {l2_tag[victim_idx], 6'b000000};
+                    data_out_dirty_line <= l2_mem[victim_idx];
+                    l2_mem[victim_idx] <= l3_in;
+                    l2_tag[victim_idx] <= tag_num;
+                    valid[victim_idx] <= 1;
+                    dirty[victim_idx] <= 0;
+                    touch(victim_idx);
+                    next_state <= 2'b01;
                 end
             endcase
         end
     end
 endmodule
+
+module l1_l2_top
