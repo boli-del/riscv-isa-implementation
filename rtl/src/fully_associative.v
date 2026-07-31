@@ -344,4 +344,74 @@ module l2_cache(
     end
 endmodule
 
-module l1_l2_top
+`timescale 1ns/1ps
+module l1_l2_top(
+    input clk,
+    input rst_n,
+    input w_enable,
+    input [31:0] data_in, location,
+    input [1:0] cache_location,
+    input l3_completed,
+    input [511:0] l3_in,
+    output [31:0] data_out,
+    output [1:0] l1_state, l2_state,
+    output l2_call, l2_finished, l2_acknowledged,
+    output l3_write_from_l2, l3_search_dirty,
+    output [31:0] l3_read_index,
+    output l3_dirty,
+    output [31:0] l3_dirty_index,
+    output [511:0] l3_dirty_line
+);
+    wire [511:0] l1_dirty_data;
+    wire [31:0] l1_evict_index;
+    wire l1_replacement;
+    wire [3:0] l1_victim_idx;
+    wire [511:0] l2_line_out;
+
+    l1_cache l1 (
+        .clk(clk),
+        .rst_n(rst_n),
+        .l2_write_finished(l2_finished),
+        .w_enable(w_enable),
+        .l2_in_data(l2_line_out),
+        .data_in(data_in),
+        .location(location),
+        .cache_location(cache_location),
+        .state_in(l1_state),
+        .victim_idx_in(l1_victim_idx),
+        .out_state(),
+        .next_state(l1_state),
+        .l2_call(l2_call),
+        .replacement(l1_replacement),
+        .l2_fetch_index(l1_evict_index),
+        .l2_fetch(),
+        .data_out(data_out),
+        .dirty_data(l1_dirty_data),
+        .victim_idx_out(l1_victim_idx)
+    );
+
+    l2_cache l2 (
+        .clk(clk),
+        .rst_n(rst_n),
+        .l2_initiated(l2_call),
+        .b_dirty(l1_replacement),
+        .l3_completed(l3_completed),
+        .data_w(l1_dirty_data),
+        .l3_in(l3_in),
+        .index_w(l1_evict_index),
+        .data_in_index(location),
+        .state_in(l2_state),
+        .completed_wb(),
+        .l3_write_from_l2(l3_write_from_l2),
+        .l3_search_dirty(l3_search_dirty),
+        .l2_acknowledged(l2_acknowledged),
+        .l2_finished(l2_finished),
+        .data_out_dirty(l3_dirty),
+        .dirt_acknowledged(),
+        .next_state(l2_state),
+        .data_out(l2_line_out),
+        .data_out_dirty_line(l3_dirty_line),
+        .dataout_index(l3_read_index),
+        .data_out_dirty_index(l3_dirty_index)
+    );
+endmodule
