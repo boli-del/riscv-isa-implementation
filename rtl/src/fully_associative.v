@@ -415,3 +415,99 @@ module l1_l2_top(
         .data_out_dirty_index(l3_dirty_index)
     );
 endmodule
+
+`timescale 1ns/1ps
+module base_mem(
+    input clk,
+    input rst_n,
+    input b_dirty,
+    input [511:0] data_dirty,
+    input [31:0] index_dirty, index_w,
+    output reg [511:0] data_out,
+    output reg [31:0] dataout_index,
+    output reg l3_completed, l3_finished_writing, l3_acknowledged
+);
+    parameter LINES = 128;
+    parameter IDX_MX = 7;
+
+    reg [511:0] storage[0: LINES-1];
+
+    wire [IDX_MX-1 : 0] mem_idx = index_w[6 +: IDX_MX];
+    wire [IDX_MX-1 : 0] mem_dirty = index_dirty[6 +: IDX_MX];
+
+    always @ (posedge clk or negedge rst_n) begin
+        if(!rst_n) begin
+            data_out <= 0;
+            dataout_index <= 0;
+            l3_completed <= 0;
+            l3_finished_writing <= 0;
+            l3_acknowledged <= 0;
+        end
+        else begin
+            l3_acknowledged <= 1;
+            if(b_dirty) begin
+                storage[mem_dirty] <= data_dirty;
+                l3_finished_writing <= 1;
+                l3_completed <= 0;
+            end
+            else begin
+                data_out <= storage[mem_idx];
+                dataout_index <= index_w;
+                l3_completed <= 1;
+                l3_finished_writing <= 0;
+            end
+        end
+    end
+endmodule
+
+`timescale 1ns/1ps
+module cache_mem_top(
+    input clk,
+    input rst_n,
+    input w_enable,
+    input [31:0] data_in, location,
+    input [1:0] cache_location,
+    output [31:0] data_out,
+    output [1:0] l1_state, l2_state
+);
+    wire l3_completed, l3_dirty;
+    wire [511:0] mem_line, l3_dirty_line;
+    wire [31:0] l3_read_index, l3_dirty_index;
+
+    l1_l2_top cache (
+        .clk(clk),
+        .rst_n(rst_n),
+        .w_enable(w_enable),
+        .data_in(data_in),
+        .location(location),
+        .cache_location(cache_location),
+        .l3_completed(l3_completed),
+        .l3_in(mem_line),
+        .data_out(data_out),
+        .l1_state(l1_state),
+        .l2_state(l2_state),
+        .l2_call(),
+        .l2_finished(),
+        .l2_acknowledged(),
+        .l3_write_from_l2(),
+        .l3_search_dirty(),
+        .l3_read_index(l3_read_index),
+        .l3_dirty(l3_dirty),
+        .l3_dirty_index(l3_dirty_index),
+        .l3_dirty_line(l3_dirty_line)
+    );
+
+    base_mem mem (
+        .clk(clk),
+        .rst_n(rst_n),
+        .b_dirty(l3_dirty),
+        .data_dirty(l3_dirty_line),
+        .index_dirty(l3_dirty_index),
+        .index_w(l3_read_index),
+        .data_out(mem_line),
+        .dataout_index(),
+        .l3_completed(l3_completed),
+        .l3_finished_writing(),
+        .l3_acknowledged()
+    );
+endmodule
