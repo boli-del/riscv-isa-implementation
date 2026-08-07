@@ -30,7 +30,37 @@ def test_associative_runner():
         build_args = ["--coverage"] if sim == "verilator" else [],
         waves = True
     )
-    runner.test(hdl_toplevel = "l1_cache", test_module = ["test_associative_mem"], waves = True)
+    runner.test(hdl_toplevel = "l1_cache", test_module = ["test_associative_mem"], testcase = ["test_l1_cache", "test_l1_read", "test_l1_write"], waves = True)
+
+    runner.build(
+        sources = sources,
+        hdl_toplevel = "l2_cache",
+        build_dir = "sim_build_l2_associative",
+        always = True,
+        build_args = ["--coverage"] if sim == "verilator" else [],
+        waves = True
+    )
+    runner.test(hdl_toplevel = "l2_cache", test_module = ["test_associative_mem"], testcase = ["test_l2_read", "test_l2_write"], waves = True)
+
+    runner.build(
+        sources = sources,
+        hdl_toplevel = "base_mem",
+        build_dir = "sim_build_l3_associative",
+        always = True,
+        build_args = ["--coverage"] if sim == "verilator" else [],
+        waves = True
+    )
+    runner.test(hdl_toplevel = "base_mem", test_module = ["test_associative_mem"], testcase = ["test_base_mem_read", "test_base_mem_writeback"], waves = True)
+
+    runner.build(
+        sources = sources,
+        hdl_toplevel = "cache_mem_top",
+        build_dir = "sim_build_top_associative",
+        always = True,
+        build_args = ["--coverage"] if sim == "verilator" else [],
+        waves = True
+    )
+    runner.test(hdl_toplevel = "cache_mem_top", test_module = ["test_associative_mem"], testcase = ["test_cache_mem_refill"], waves = True)
 
 
 def test_mem_runner():

@@ -83,12 +83,12 @@ async def test_l2_read(dut):
     await RisingEdge(dut.clk)
     # first rising edge, we should expect first round of outputs
     await Timer(0.2, unit = 'ns')
-    assert dut.l2_acknowledged == 1, "l2 task was ran without acknowledgement"
+    assert dut.l2_acknowledged.value == 1, "l2 task was ran without acknowledgement"
     assert dut.l3_write_from_l2.value == 0, "write_enable is not acknowledged"
     assert dut.dataout_index.value == 0b01 << 30, "inconsistent data in with inconsistent data out"
-    assert dut.completed_wb == 0, "inconsistent writeback value"
-    assert dut.next_state == 0b01, "output state did not reset"
-    assert dut.dirt_acknowledged == 0, "dirt is acknowledged despite no dirty bit set"
+    assert dut.completed_wb.value == 0, "inconsistent writeback value"
+    assert dut.next_state.value == 0b01, "output state did not reset"
+    assert dut.dirt_acknowledged.value == 0, "dirt is acknowledged despite no dirty bit set"
     assert dut.used_locality[0].value == 0, "information pulled but locality not reset"
 
 @cocotb.test()
@@ -104,7 +104,7 @@ async def test_l2_write(dut):
     dut.l2_initiated.value = 1
     dut.used_locality[0].value = 16
     dut.state_in.value = 0b01
-    dut.b_dirty.value = 0
+    dut.b_dirty.value = 1
     dut.index_w.value = 0b01<<30
     dut.data_w.value = 0xA000000F_A000000E_A000000D_A000000C_A000000B_A000000A_A0000009_A0000008_A0000007_A0000006_A0000005_A0000004_A0000003_A0000002_A0000001_FEDCBA98
     await RisingEdge(dut.clk)
@@ -121,12 +121,78 @@ async def test_l2_write(dut):
     dut.state_in.value = 0b11
     dut.b_dirty.value = 0
     dut.index_w.value = 0b01<<30
-    dut.data_w.vlaue = 0xA000000F_A000000E_A000000D_A000000C_A000000B_A000000A_A0000009_A0000008_A0000007_A0000006_A0000005_A0000004_A0000003_A0000002_A0000001_FEDCBA98
+    dut.data_w.value = 0xA000000F_A000000E_A000000D_A000000C_A000000B_A000000A_A0000009_A0000008_A0000007_A0000006_A0000005_A0000004_A0000003_A0000002_A0000001_FEDCBA98
     await RisingEdge(dut.clk)
     await Timer(0.2, unit = 'ns')
     assert dut.l2_mem[0].value == 0xA000000F_A000000E_A000000D_A000000C_A000000B_A000000A_A0000009_A0000008_A0000007_A0000006_A0000005_A0000004_A0000003_A0000002_A0000001_FEDCBA98, "memory value did not update"
     assert dut.dirty[0].value == 1, "dirty value did not update even though data was written"
     assert dut.l2_acknowledged.value == 0, "acknowledgement not reset even when the request was processed"
-    assert dut.next_state.value == 0b01, ""
-    assert dut.dirt_acknowledged.value == 1
-    assert dut.
+    assert dut.next_state.value == 0b01, "next state not driven fresh despite finishing write"
+    assert dut.dirt_acknowledged.value == 1, "dirty bit was not acknowledged depite write back"
+    assert dut.used_locality[0].value == 0, "locality did not reset despite cell touched"
+
+@cocotb.test()
+async def test_base_mem_read(dut):
+    clk = Clock(dut.clk, 2, unit = 'ns')
+    clk.start()
+    await Timer(1.2, unit = 'ns')
+    dut.rst_n.value = 0
+    dut.b_dirty.value = 0
+    dut.index_w.value = 0
+    dut.index_dirty.value = 0
+    dut.data_dirty.value = 0
+    await RisingEdge(dut.clk)
+    dut.rst_n.value = 1
+    line = random.getrandbits(512)
+    dut.storage[0].value = line
+    dut.index_w.value = 0
+    await RisingEdge(dut.clk)
+    await Timer(0.2, unit = 'ns')
+    assert(dut.l3_completed.value == 1), "expected read to complete but l3_completed was low"
+    assert(dut.data_out.value == line), "base_mem returned the wrong line on a read"
+    assert(dut.l3_finished_writing.value == 0), "write-back flag asserted on a read"
+
+@cocotb.test()
+async def test_base_mem_writeback(dut):
+    clk = Clock(dut.clk, 2, unit = 'ns')
+    clk.start()
+    await Timer(1.2, unit = 'ns')
+    dut.rst_n.value = 0
+    dut.b_dirty.value = 0
+    dut.index_w.value = 0
+    dut.index_dirty.value = 0
+    dut.data_dirty.value = 0
+    await RisingEdge(dut.clk)
+    dut.rst_n.value = 1
+    victim = random.getrandbits(512)
+    dut.b_dirty.value = 1
+    dut.data_dirty.value = victim
+    dut.index_dirty.value = 0
+    await RisingEdge(dut.clk)
+    await Timer(0.2, unit = 'ns')
+    assert(dut.l3_finished_writing.value == 1), "write-back did not complete"
+    dut.b_dirty.value = 0
+    dut.index_w.value = 0
+    await RisingEdge(dut.clk)
+    await Timer(0.2, unit = 'ns')
+    assert(dut.data_out.value == victim), "stored victim line did not read back"
+
+@cocotb.test()
+async def test_cache_mem_refill(dut):
+    clk = Clock(dut.clk, 2, unit = 'ns')
+    clk.start()
+    await Timer(1.2, unit = 'ns')
+    dut.rst_n.value = 0
+    dut.w_enable.value = 0
+    dut.data_in.value = 0
+    dut.location.value = 0
+    dut.cache_location.value = 0
+    await RisingEdge(dut.clk)
+    dut.rst_n.value = 1
+    line = random.getrandbits(512)
+    dut.mem.storage[0].value = line
+    for _ in range(12):
+        await RisingEdge(dut.clk)
+    await Timer(0.2, unit = 'ns')
+    assert(dut.data_out.value == line & 0xFFFFFFFF), "miss did not refill through l2 and base memory to serve the read"
+

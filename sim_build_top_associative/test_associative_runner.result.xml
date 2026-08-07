@@ -1,9 +1,15 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-    <property name="random_seed" value="1786111020" />
-    <testcase name="test_l1_cache" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="6" time="0.012630701065063477" sim_time_ns="2.2" ratio_time="174.17877191988978" />
-    <testcase name="test_l1_read" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="27" time="0.0007112026214599609" sim_time_ns="2.1999999999999997" ratio_time="3093.3519275896742" />
-    <testcase name="test_l1_write" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="46" time="0.0005142688751220703" sim_time_ns="2.2" ratio_time="4277.917848864164" />
+    <property name="random_seed" value="1786111023" />
+    <testcase name="test_l1_cache" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="6" time="0" sim_time_ns="0" ratio_time="0">
+      <skipped />
+    </testcase>
+    <testcase name="test_l1_read" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="27" time="0" sim_time_ns="0" ratio_time="0">
+      <skipped />
+    </testcase>
+    <testcase name="test_l1_write" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="46" time="0" sim_time_ns="0" ratio_time="0">
+      <skipped />
+    </testcase>
     <testcase name="test_l2_read" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="68" time="0" sim_time_ns="0" ratio_time="0">
       <skipped />
     </testcase>
@@ -16,8 +22,6 @@
     <testcase name="test_base_mem_writeback" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="155" time="0" sim_time_ns="0" ratio_time="0">
       <skipped />
     </testcase>
-    <testcase name="test_cache_mem_refill" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="180" time="0" sim_time_ns="0" ratio_time="0">
-      <skipped />
-    </testcase>
+    <testcase name="test_cache_mem_refill" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="180" time="0.014426708221435547" sim_time_ns="26.2" ratio_time="1816.0760998182118" />
   </testsuite>
 </testsuites>

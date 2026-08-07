@@ -1,0 +1,25 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1786111022" />
+    <testcase name="test_l1_cache" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="6" time="0" sim_time_ns="0" ratio_time="0">
+      <skipped />
+    </testcase>
+    <testcase name="test_l1_read" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="27" time="0" sim_time_ns="0" ratio_time="0">
+      <skipped />
+    </testcase>
+    <testcase name="test_l1_write" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="46" time="0" sim_time_ns="0" ratio_time="0">
+      <skipped />
+    </testcase>
+    <testcase name="test_l2_read" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="68" time="0" sim_time_ns="0" ratio_time="0">
+      <skipped />
+    </testcase>
+    <testcase name="test_l2_write" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="94" time="0" sim_time_ns="0" ratio_time="0">
+      <skipped />
+    </testcase>
+    <testcase name="test_base_mem_read" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="134" time="0.009294509887695312" sim_time_ns="4.2" ratio_time="451.8796634516725" />
+    <testcase name="test_base_mem_writeback" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="155" time="0.0005404949188232422" sim_time_ns="6.2" ratio_time="11470.96815174239" />
+    <testcase name="test_cache_mem_refill" classname="test_associative_mem" file="C:\Users\bob.li\OneDrive - RamSoft Inc\Documents\riscv_modules\testbenches\test_associative_mem.py" lineno="180" time="0" sim_time_ns="0" ratio_time="0">
+      <skipped />
+    </testcase>
+  </testsuite>
+</testsuites>
