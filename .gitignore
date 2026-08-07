@@ -8,3 +8,6 @@ sim_build_l2/
 sim_build_l2l3/
 sim_build_l3/
 sim_build_l1_associative/
+sim_build_l2_associative/
+sim_build_l3_associative/
+sim_build_top_associative/
