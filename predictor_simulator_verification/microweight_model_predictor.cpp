@@ -16,9 +16,9 @@ using namespace std;
 class regression_classifier{
     public:
         double predict(uint32_t input){
-            if(prediction_totals_location[input] == 0) return 0.5;
-
+            double threshold = 0.02;
             int index = input % 4096;
+            if(variance(index) > threshold) return 0.5;
             int usef = lut[index].first;
             int conf = lut[index].second;
 
@@ -34,8 +34,13 @@ class regression_classifier{
             double logit_conf = logit(conf_p);
             double logit_hist = logit(hist_p);
 
+            double w_loc = 1.0 / weight_variance_calc((double)prediction_successes_location[input] + 1,(double)(prediction_totals_location[input]-prediction_successes_location[input] + 1));
+            double w_usf = 1.0 / weight_variance_calc((double)(prediction_successes_usefulness[usef] + 1), (double)(prediction_totals_usefulness[usef] - prediction_successes_usefulness[usef] + 1));
+            double w_conf = 1.0 / weight_variance_calc((double)(prediction_successes_confidence[conf] + 1), (double)(prediction_totals_confidence[conf] - prediction_successes_confidence[conf] + 1));
+            double w_hist = 1.0 / weight_variance_calc((double)(prediction_successes_history[pred_hist & 0xF] + 1), (double)(prediction_totals_history[pred_hist & 0xF] - prediction_successes_history[pred_hist & 0xF] + 1));
+
             //sigmoid
-            double sum = logit_loc + logit_usf + logit_conf + logit_hist;
+            double sum = (w_loc * logit_loc) + (w_usf * logit_usf) + (w_conf * logit_conf) + (w_hist * logit_hist);
             return 1.0 / (1.0 + exp(-sum));
         }
 
@@ -46,6 +51,9 @@ class regression_classifier{
             prediction_totals_usefulness[lut[index].first]++;
             prediction_totals_confidence[lut[index].second]++;
             prediction_totals_history[pred_hist & 0xF]++;
+
+            update_bayesian(correct, index);
+
             if(correct){
                 prediction_successes_location[input]++;
                 prediction_successes_usefulness[lut[index].first]++;
@@ -63,6 +71,7 @@ class regression_classifier{
     private:
         int total_predictions = 0;
         map<uint32_t, pair<int, int>> lut;
+        map<uint32_t, pair<int, int>> bayesian;
         uint16_t pred_hist = 0;
         map<uint32_t, int> prediction_successes_location;
         map<int, int> prediction_successes_usefulness;
@@ -84,5 +93,31 @@ class regression_classifier{
             if(p >= 1) p = 0.999;
             double input = p/(1-p);  //for actual implementation just ignore remainder
             return log(input);
+        }
+
+        double variance(int index){
+            if(bayesian[index].first == bayesian[index].second && bayesian[index].first == 0){
+                bayesian[index].first = 1;
+                bayesian[index].second = 1;
+            }
+            double a = bayesian[index].first;
+            double b = bayesian[index].second;
+            double sum = a + b;
+            return (a * b)/((sum * sum) *(sum + 1));
+        }
+        
+        double weight_variance_calc(double a, double b){
+            double  sum = a + b;
+            return (a * b)/((sum * sum) * (sum + 1));
+        }
+
+        //updating the bayesian of the pair depending on hit or miss
+        void update_bayesian(bool h_m, int index){
+            //true meaning hit, false meaning miss
+            if(h_m){
+                bayesian[index].first ++;
+            }else{
+                bayesian[index].second ++;
+            }
         }
 };
