@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 from cocotb_tools.runner import get_runner
 
-# hook up of cocotb test bench into test runner, for running cocotb simulation tests
 # please follow pre-existing example code already that was already commited to wire up your verilog sources into the project
 
 def test_add_runner():
@@ -18,6 +17,52 @@ def test_add_runner():
     )
     runner.test(hdl_toplevel="top_module", test_module = ["test_add", "test_r_type"], waves = True)
 
+def test_associative_runner():
+    sim = os.getenv("SIM", "icarus")
+    proj_path = Path(__file__).resolve().parent.parent
+    sources = [proj_path/"rtl"/"src"/"fully_associative.v"]
+    runner = get_runner(sim)
+    runner.build(
+        sources = sources,
+        hdl_toplevel = "l1_cache",
+        build_dir = "sim_build_l1_associative",
+        always = True,
+        build_args = ["--coverage"] if sim == "verilator" else [],
+        waves = True
+    )
+    runner.test(hdl_toplevel = "l1_cache", test_module = ["test_associative_mem"], testcase = ["test_l1_cache", "test_l1_read", "test_l1_write"], waves = True)
+
+    runner.build(
+        sources = sources,
+        hdl_toplevel = "l2_cache",
+        build_dir = "sim_build_l2_associative",
+        always = True,
+        build_args = ["--coverage"] if sim == "verilator" else [],
+        waves = True
+    )
+    runner.test(hdl_toplevel = "l2_cache", test_module = ["test_associative_mem"], testcase = ["test_l2_read", "test_l2_write"], waves = True)
+
+    runner.build(
+        sources = sources,
+        hdl_toplevel = "base_mem",
+        build_dir = "sim_build_l3_associative",
+        always = True,
+        build_args = ["--coverage"] if sim == "verilator" else [],
+        waves = True
+    )
+    runner.test(hdl_toplevel = "base_mem", test_module = ["test_associative_mem"], testcase = ["test_base_mem_read", "test_base_mem_writeback"], waves = True)
+
+    runner.build(
+        sources = sources,
+        hdl_toplevel = "cache_mem_top",
+        build_dir = "sim_build_top_associative",
+        always = True,
+        build_args = ["--coverage"] if sim == "verilator" else [],
+        waves = True
+    )
+    runner.test(hdl_toplevel = "cache_mem_top", test_module = ["test_associative_mem"], testcase = ["test_cache_mem_refill"], waves = True)
+
+
 def test_mem_runner():
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent.parent
@@ -31,8 +76,38 @@ def test_mem_runner():
         build_args = ["--coverage"] if sim == "verilator" else [],
         waves = True
     )
-    runner.test(hdl_toplevel = "l1_cache", test_module = ["test_mem"], waves = True)
+    runner.test(hdl_toplevel = "l1_cache", test_module = ["test_mem"], testcase = ["test_l1_cache", "test_l1_read", "test_l1_write"], waves = True)
+    runner.build(
+        sources = sources,
+        hdl_toplevel = "l2_cache",
+        build_dir = "sim_build_l2",
+        always = True,
+        build_args = ["--coverage"] if sim == "verilator" else [],
+        waves = True
+    )
+    runner.test(hdl_toplevel = "l2_cache", test_module = ["test_mem"], testcase = ["test_l2_cache_no_dirty"], waves = True)
+
+    runner.build(
+        sources = sources,
+        hdl_toplevel = "base_mem",
+        build_dir = "sim_build_l3",
+        always = True,
+        build_args = ["--coverage"] if sim == "verilator" else [],
+        waves = True
+    )
+    runner.test(hdl_toplevel = "base_mem", test_module = ["test_mem"], testcase = ["test_base_mem_read", "test_base_mem_writeback"], waves = True)
+
+    runner.build(
+        sources = sources,
+        hdl_toplevel = "l2_l3_top",
+        build_dir = "sim_build_l2l3",
+        always = True,
+        build_args = ["--coverage"] if sim == "verilator" else [],
+        waves = True
+    )
+    runner.test(hdl_toplevel = "l2_l3_top", test_module = ["test_mem"], testcase = ["test_l2_l3_refill"], waves = True)
 
 if __name__ == "__main__":
     test_add_runner()
+    test_associative_runner()
     test_mem_runner()
