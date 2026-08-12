@@ -1,5 +1,6 @@
 #include <iomanip>
 #include "microweight_model_predictor.cpp"
+#include "tage_predictor.cpp"
 #include "synthetic_traces.h"
 #include "predictor.h"
 
@@ -12,6 +13,19 @@ double run_microweight(const trace_t &trace){
             correct++;
         }
         p.update(branch.first, branch.second);
+    }
+    return 100.0 * correct / trace.size();
+}
+
+double run_tage(const trace_t &trace){
+    tage_predictor p;
+    int correct = 0;
+    for(auto &branch : trace){
+        pair<bool, int> guess = p.predict(branch.first);
+        if(guess.first == branch.second){
+            correct++;
+        }
+        p.update_usefulness(branch.first, branch.second, guess.first, guess.second);
     }
     return 100.0 * correct / trace.size();
 }
@@ -38,10 +52,11 @@ int main(){
         {"random_50_50", random_50_50()},
     };
     cout << left << setw(18) << "trace" << right << setw(10) << "branches"
-         << setw(14) << "microweight" << setw(14) << "last-outcome" << endl;
+         << setw(14) << "microweight" << setw(14) << "tage" << setw(14) << "last-outcome" << endl;
     for(auto &tr : traces){
         cout << left << setw(18) << tr.first << right << setw(10) << tr.second.size()
              << setw(13) << fixed << setprecision(1) << run_microweight(tr.second) << "%"
+             << setw(13) << run_tage(tr.second) << "%"
              << setw(13) << run_last_outcome(tr.second) << "%" << endl;
     }
     return 0;
