@@ -38,3 +38,6 @@ L2 local miss rate 0.7742  (72 to mem)
 mem latency        9.26 cyc  (+3.26 over L2 hit)
 
 AMAT = 3.00 + 0.0539 * (3.00 + 0.7742 * 3.26) = 3.30 cyc
+
+### About Branch Predictors
+I think that TAGE predictor are such state of the art with TAGE-SC-L being top in the class branch predictor, I don't think I could optimize it further at my level of studies currently.
