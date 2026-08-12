@@ -20,39 +20,42 @@ class tage_predictor{
         map<uint32_t, uint32_t> specific_hist;
         pair<bool, int> predict(uint32_t input){
             //hash location, simple version
-            int hashed_val = input % 4096;
-            if(recent_hist == sixfour[hashed_val]){
-                if(is_new(hashed_val, 0)){
-                    return {alt_predict(hashed_val, 0, input), 0};
+            int idx0 = table_index(input, 0);
+            int idx1 = table_index(input, 1);
+            int idx2 = table_index(input, 2);
+            int idx3 = table_index(input, 3);
+            if(tag(input, 0) == sixfour[idx0]){
+                if(is_new(idx0, 0)){
+                    return {alt_predict(input, 0), 0};
                 }
-                if(confidence[hashed_val][0] > 0){
+                if(confidence[idx0][0] > 0){
                     return {true, 0};
                 }else{
                     return {false, 0};
                 }
-            }else if((recent_hist & 0x7FFFFFF) == thtytwo[hashed_val]){
-                if(is_new(hashed_val, 1)){
-                    return {alt_predict(hashed_val, 1, input), 1};
+            }else if(tag(input, 1) == thtytwo[idx1]){
+                if(is_new(idx1, 1)){
+                    return {alt_predict(input, 1), 1};
                 }
-                if(confidence[hashed_val][1] > 0){
+                if(confidence[idx1][1] > 0){
                     return {true, 1};
                 }else{
                     return {false, 1};
                 }
-            }else if((recent_hist & 0xFFF) == sixteen[hashed_val]){
-                if(is_new(hashed_val, 2)){
-                    return {alt_predict(hashed_val, 2, input), 2};
+            }else if(tag(input, 2) == sixteen[idx2]){
+                if(is_new(idx2, 2)){
+                    return {alt_predict(input, 2), 2};
                 }
-                if(confidence[hashed_val][2] > 0){
+                if(confidence[idx2][2] > 0){
                     return {true, 2};
                 }else{
                     return {false, 2};
                 }
-            }else if((recent_hist & 0x1F) == eight_bit[hashed_val]){
-                if(is_new(hashed_val, 3)){
-                    return {alt_predict(hashed_val, 3, input), 3};
+            }else if(tag(input, 3) == eight_bit[idx3]){
+                if(is_new(idx3, 3)){
+                    return {alt_predict(input, 3), 3};
                 }
-                if(confidence[hashed_val][3] > 0){
+                if(confidence[idx3][3] > 0){
                     return {true, 3};
                 }else{
                     return {false, 3};
@@ -61,67 +64,90 @@ class tage_predictor{
             return {basepredictor.predict(input), 4};
         }
         void update_usefulness(uint32_t input, bool taken, bool predicted, int segment){
-            int hashed_val = input % 4096;
-            recent_hist = (recent_hist << 1)|taken;
-            basepredictor.update(taken);
-            if(segment == 4){
+            if(segment != 4){
+                int hashed_val = table_index(input, segment);
+                if(taken){
+                    if(confidence[hashed_val][segment] < 3){
+                        confidence[hashed_val][segment] ++;
+                    }
+                }else{
+                    if(confidence[hashed_val][segment] > -4){
+                        confidence[hashed_val][segment]--;
+                    }
+                }
                 if(taken != predicted){
-                    allocate(hashed_val, 3, taken);
-                }
-                return;
-            }
-            if(taken){
-                if(confidence[hashed_val][segment] < 3){
-                    confidence[hashed_val][segment] ++;
-                }
-            }else{
-                if(confidence[hashed_val][segment] > -4){
-                    confidence[hashed_val][segment]--;
+                    if(usefulness[hashed_val][segment] > 0){
+                        usefulness[hashed_val][segment] = usefulness[hashed_val][segment] - 1;
+                    }
+                }else{
+                    if(usefulness[hashed_val][segment] < 3){
+                        usefulness[hashed_val][segment] = usefulness[hashed_val][segment] + 1;
+                    }
                 }
             }
             if(taken != predicted){
-                if(usefulness[hashed_val][segment] > 0){
-                    usefulness[hashed_val][segment] = usefulness[hashed_val][segment] - 1;
-                }
-            }else{
-                if(usefulness[hashed_val][segment] < 3){
-                    usefulness[hashed_val][segment] = usefulness[hashed_val][segment] + 1;
-                }
+                allocate(input, segment, taken);
             }
-            if(usefulness[hashed_val][segment] <= 0){
-                allocate(hashed_val, segment, taken);
-            }
+            recent_hist = (recent_hist << 1)|taken;
+            basepredictor.update(taken);
         }
     private:
         uint64_t recent_hist = 0;
         int hist_len[4] = {64, 27, 12, 5};
-        bool is_new(int hashed_val, int segment){
-            return confidence[hashed_val][segment] >= -1 && confidence[hashed_val][segment] <= 1 && usefulness[hashed_val][segment] == 0;
-        }
-        bool alt_predict(int hashed_val, int provider, uint32_t input){
-            if(provider < 1 && (recent_hist & 0x7FFFFFF) == thtytwo[hashed_val]){
-                return confidence[hashed_val][1] > 0;
-            }else if(provider < 2 && (recent_hist & 0xFFF) == sixteen[hashed_val]){
-                return confidence[hashed_val][2] > 0;
-            }else if(provider < 3 && (recent_hist & 0x1F) == eight_bit[hashed_val]){
-                return confidence[hashed_val][3] > 0;
-            }
-            return basepredictor.predict(input);
-        }
-        void allocate(int hashed_val, int segment, bool taken){
+        uint64_t fold(int segment, int width){
             uint64_t mask = 0xFFFFFFFFFFFFFFFF;
             int shift = 64 - hist_len[segment];
             mask = mask >> shift;
-            if(segment == 0){
-                sixfour[hashed_val] = recent_hist & mask;
-            }else if(segment == 1){
-                thtytwo[hashed_val] = recent_hist & mask;
-            }else if(segment == 2){
-                sixteen[hashed_val] = recent_hist & mask;
-            }else{
-                eight_bit[hashed_val] = recent_hist & mask;
+            uint64_t h = recent_hist & mask;
+            uint64_t folded = 0;
+            while(h != 0){
+                folded = folded ^ (h & ((1ULL << width) - 1));
+                h = h >> width;
             }
-            confidence[hashed_val][segment] = taken ? 1 : -1;
-            usefulness[hashed_val][segment] = 0;
+            return folded;
+        }
+        int table_index(uint32_t input, int segment){
+            return (input ^ (input >> 4) ^ fold(segment, 12)) % 4096;
+        }
+        int tag(uint32_t input, int segment){
+            return (input ^ fold(segment, 8) ^ (fold(segment, 7) << 1)) & 0xFF;
+        }
+        bool is_new(int hashed_val, int segment){
+            return confidence[hashed_val][segment] >= -1 && confidence[hashed_val][segment] <= 1 && usefulness[hashed_val][segment] == 0;
+        }
+        bool alt_predict(uint32_t input, int provider){
+            if(provider < 1 && tag(input, 1) == thtytwo[table_index(input, 1)]){
+                return confidence[table_index(input, 1)][1] > 0;
+            }else if(provider < 2 && tag(input, 2) == sixteen[table_index(input, 2)]){
+                return confidence[table_index(input, 2)][2] > 0;
+            }else if(provider < 3 && tag(input, 3) == eight_bit[table_index(input, 3)]){
+                return confidence[table_index(input, 3)][3] > 0;
+            }
+            return basepredictor.predict(input);
+        }
+        void allocate(uint32_t input, int provider, bool taken){
+            for(int s = provider - 1; s >= 0; s--){
+                int hashed_val = table_index(input, s);
+                if(usefulness[hashed_val][s] == 0){
+                    if(s == 0){
+                        sixfour[hashed_val] = tag(input, 0);
+                    }else if(s == 1){
+                        thtytwo[hashed_val] = tag(input, 1);
+                    }else if(s == 2){
+                        sixteen[hashed_val] = tag(input, 2);
+                    }else{
+                        eight_bit[hashed_val] = tag(input, 3);
+                    }
+                    confidence[hashed_val][s] = taken ? 1 : -1;
+                    usefulness[hashed_val][s] = 0;
+                    return;
+                }
+            }
+            for(int s = provider - 1; s >= 0; s--){
+                int hashed_val = table_index(input, s);
+                if(usefulness[hashed_val][s] > 0){
+                    usefulness[hashed_val][s]--;
+                }
+            }
         }
 };
