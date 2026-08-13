@@ -11,7 +11,9 @@ module instruction_dec(
     output [4:0] rd,
     output [2:0] funct3,
     output [6:0] opcode,
-    output [3:0] mode
+    output [3:0] mode,
+    output [2:0] immsel,
+    output bsel
 );
     assign funct7 = instr_code [31:25];
     assign rs2 = instr_code [24:20];
@@ -46,8 +48,27 @@ endmodule
 module det_r_alu_op(
     input [2:0] funct3,
     input [6:0] funct7,
-    output reg [3:0] alu_op_code);
+    input [6:0] opcode,
+    output reg [3:0] alu_op_code
+    output reg [2:0] immsel);
+
+    task det_immsel;
+        input [6:0] op_code;
+        output [2:0] immsel_res;
+
+        begin
+            case(opcode)
+                7'b0010011: immsel_res = 3'b000;
+                7'b0000011: immsel_res = 3'b001;
+                7'b0100011: immsel_res = 3'b010;
+                7'b1100011: immsel_res = 3'b011;
+                7'b1101111: immsel_res = 3'b100;
+            endcase
+        end
+    endtask
+
     always @(*)begin
+        det_immsel selct_imm(opcode, immsel);
         if(funct3 == 0)begin
             if(funct7 == 0) begin
                 alu_op_code = 0;
