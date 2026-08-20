@@ -68,12 +68,12 @@ endmodule
 
 `timescale 1ns/1ps
 module execute(
-    input [31:0] rs1,
-    input [31:0] rs2,
+    input [31:0] a,
+    input [31:0] b,
     input [3:0] mode,
     output [31:0] out
 );
-    ALU calc(rs1, rs2, mode, out);
+    ALU calc(a, b, mode, out);
 endmodule
 
 `timescale 1ns/1ps

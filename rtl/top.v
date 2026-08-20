@@ -7,8 +7,8 @@ module top_module(
     reg  [31:0] pc; // program counter register (current instruction address)
     wire [31:0] new_pc; // next-PC value computed by the fetch unit (pc + 4) default
     wire [31:0] pc_if, inst_code_if;
-    wire [31:0] rs1val, rs2val;
-    wire [31:0] id_rs1al, id_rs2val;
+    wire [31:0] rs1val, rs2val, imm;
+    wire [31:0] id_rs1al, id_rs2val, id_imm;
     wire [4:0] rd, rs1, rs2;
     wire [4:0] id_rd, ex_rd;
     wire [6:0] funct7;
@@ -18,6 +18,7 @@ module top_module(
     wire [31:0] ex_wb;
     wire [3:0] mode;
     wire [3:0] id_mode;
+    wire bsel, id_bsel;
     initial begin
         $dumpfile("dump.vcd");
         $dumpvars(0, top_module);
@@ -40,17 +41,22 @@ module top_module(
     instruction_dec ID (
         .instr_code(inst_code_if),  .rs1(rs1),  .rs2(rs2),
         .funct7(funct7), .rd(rd),
-        .funct3(funct3), .opcode(opcode), .mode(mode)
+        .funct3(funct3), .opcode(opcode), .mode(mode), .imm(imm), .bsel(bsel)
     );
+    
 
     register_file reg_f(
         .clk(clk),  .rst_n(rst_n),  .rs1(rs1),  .rs2(rs2),  .rd(ex_rd),    .rs1val(rs1val),    .rs2val(rs2val),    .wb(ex_wb)
     );
 
     ID_pipeline_reg reg_d(
-        .clk(clk),  .rd(rd),    .mode(mode),    .rs1val(rs1val),    .rs2val(rs2val),    .storage_rd(id_rd),
-        .storage_mode(id_mode), .storage_rs1val(id_rs1al),  .storage_rs2val(id_rs2val)
+        .clk(clk),  .rd(rd),    .mode(mode),    .rs1val(rs1val),    .rs2val(rs2val),    .immval(imm),   .bsel(bsel),   .storage_rd(id_rd),
+        .storage_mode(id_mode), .storage_rs1val(id_rs1al),  .storage_rs2val(id_rs2val), .storage_immval(id_imm),    .storage_bsel(id_bsel)
     );
+
+    2_b_mux imm_mux(
+        .a(id_rs2_val), .b()
+    )
 
     execute EX (
         .rs1(id_rs1al),   .rs2(id_rs2val),  .mode(id_mode), .out(wb)
