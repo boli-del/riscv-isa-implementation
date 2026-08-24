@@ -2,6 +2,7 @@
 #include "microweight_model_predictor.cpp"
 #include "tage_predictor.cpp"
 #include "synthetic_traces.h"
+#include "cbp_trace.h"
 #include "predictor.h"
 
 double run_microweight(const trace_t &trace){
@@ -42,7 +43,7 @@ double run_last_outcome(const trace_t &trace){
     return 100.0 * correct / trace.size();
 }
 
-int main(){
+int main(int argc, char** argv){
     pair<const char*, trace_t> traces[] = {
         {"nested_loops", nested_loops()},
         {"correlated", correlated()},
@@ -58,6 +59,17 @@ int main(){
              << setw(13) << fixed << setprecision(1) << run_microweight(tr.second) << "%"
              << setw(13) << run_tage(tr.second) << "%"
              << setw(13) << run_last_outcome(tr.second) << "%" << endl;
+    }
+    for(int i = 1; i < argc; i++){
+        const char* name = argv[i];
+        for(const char* p = argv[i]; *p; p++){
+            if(*p == '/' || *p == '\\') name = p + 1;
+        }
+        trace_t tr = load_cbp_trace(argv[i]);
+        cout << left << setw(18) << name << right << setw(10) << tr.size()
+             << setw(13) << fixed << setprecision(1) << run_microweight(tr) << "%"
+             << setw(13) << run_tage(tr) << "%"
+             << setw(13) << run_last_outcome(tr) << "%" << endl;
     }
     return 0;
 }
