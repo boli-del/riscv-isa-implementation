@@ -32,9 +32,52 @@ module tage_main(
     reg [7:0] 8_b_hist [31:0];
     reg [15:0] 16_b_hist [31:0];
     reg [31:0] 32_b_hist [31:0];
-    reg [64:0] 64_b_hist [31:0];
-
+    reg [63:0] 64_b_hist [31:0];
+    reg[63:0] recent_hist;
     wire [31:0] tag;
+
+    task is_new;
+        input [31:0] input_location;
+        output new;
+        begin
+        end
+    endtask
+
+    task indexfold;
+        input [1:0] mode;
+        input [5:0] folded_length;
+        output [63:0] folded_tag;
+        reg [63:0] folded_output;
+        reg [63:0] folded;
+        begin
+            reg [63:0] mask = 0xffffffffffffffff;
+            reg [63:0] second_mask = 0xffffffffffffffff;
+            wire [5:0] shifting = 64 - width;
+            second_mask = second_mask >> shifting;
+            case(mode)
+                2'b00 : begin
+                    mask <= mask >> 56;
+                    folded_output <= recent_hist & mask;
+                end
+                2'b01 : begin
+                    mask <= mask >> 48;
+                    folded_output <= recent_hist & mask;
+                end
+                2'b10 : begin
+                    mask <= mask >> 32;
+                    folded_output <= recent_hist & mask;
+                end
+                2'b00 : begin
+                    folded_output <= recent_hist;
+                end
+            endcase
+            while(folded_output != 0) begin
+                folded = second_mask & folded_output;
+                folded_output >> width;
+            end
+            folded_tag = folded_output;
+        end
+    endtask
     encode encoding(.branch_location(location), .tag(tag));
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -45,4 +88,9 @@ module tage_main(
         end
     end
 
+endmodule
+
+module comparator(
+    input [8:0] hashed_val
+);
 endmodule
