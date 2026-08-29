@@ -26,8 +26,8 @@ module tage_main(
     input location[31:0],
     output prediction
 );
-    reg [3:0] confidence [31:0] [3:0];
-    reg [3:0] usefulness [31:0] [3:0];
+    reg [3:0] confidence [31:0] [1:0];
+    reg [3:0] usefulness [31:0] [1:0];
     reg [3:0] 4_b_hist [31:0];
     reg [7:0] 8_b_hist [31:0];
     reg [15:0] 16_b_hist [31:0];
@@ -38,8 +38,14 @@ module tage_main(
 
     task is_new;
         input [31:0] input_location;
+        input [1:0] mode;
         output new;
         begin
+            if(confidence[input_location][mode] == 0) begin
+                new = 1;
+            end else begin
+                new = 0;
+            end
         end
     endtask
 
@@ -89,6 +95,7 @@ module tage_main(
     end
 
 endmodule
+
 
 module comparator(
     input [8:0] hashed_val
