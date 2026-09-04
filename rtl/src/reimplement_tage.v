@@ -1,4 +1,4 @@
-
+`timescale 1ns/1ps
 module fold (
     input [63:0] global_hist,
     input clk,
