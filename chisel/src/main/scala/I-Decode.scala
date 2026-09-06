@@ -14,7 +14,6 @@ class instruction_dec extends Module{
         val imm = Output(UInt(32.W))
         val bsel = Output(UInt(1.W))
     })
-    val imm_type = Wire(UInt(2.W))
     io.funct_sev := io.instr_code(31, 25)
     io.rs2 := io.instr_code(24, 20)
     io.rs1:= io.instr_code(19, 15)
@@ -22,32 +21,20 @@ class instruction_dec extends Module{
     io.rd := io.instr_code(11, 7)
     io.opcode := io.instr_code(6, 0)
     io.bsel := 0.U
-    imm_type := 0.U
     switch(io.instr_code(6, 0)){
-        is("b0010011".U){
-            io.bsel := 1.U
-            imm_type := 0.U
-        }
-        is("b0000011".U){
-            io.bsel := 1.U
-            imm_type := 1.U
-        }
-        is("b0100011".U){
-            io.bsel := 1.U
-            imm_type := 2.U
-        }
-        is("b1100011".U){
-            io.bsel := 1.U
-            imm_type := 3.U
-        }
+        is("b0010011".U){ io.bsel := 1.U }
+        is("b0000011".U){ io.bsel := 1.U }
+        is("b0100011".U){ io.bsel := 1.U }
+        is("b1100011".U){ io.bsel := 1.U }
+        is("b1101111".U){ io.bsel := 1.U }
     }
-    io.imm := 0.U
-    switch(imm_type){
-        is("b00".U){io.imm := io.instr_code(24, 14)}
-        is("b01".U){io.imm := Cat(io.instr_code(24, 19), io.instr_code(4, 0))}
-        is("b10".U){io.imm := Cat(Fill(21, io.instr_code(12)), io.instr_code(12), io.instr_code(0), io.instr_code(23, 19), io.instr_code(4, 1))}
-        is("b11".U){io.imm := io.instr_code(24, 5)}
-    }
+    io.imm := MuxLookup(io.instr_code(6, 0), 0.U)(Seq(
+        "b0010011".U -> io.instr_code(31, 20),
+        "b0000011".U -> io.instr_code(31, 20),
+        "b0100011".U -> Cat(io.instr_code(31, 25), io.instr_code(11, 7)),
+        "b1100011".U -> Cat(Fill(19, io.instr_code(31)), io.instr_code(31), io.instr_code(7), io.instr_code(30, 25), io.instr_code(11, 8), 0.U),
+        "b1101111".U -> Cat(Fill(11, io.instr_code(31)), io.instr_code(31), io.instr_code(19, 12), io.instr_code(20), io.instr_code(30, 21), 0.U),
+    ))
 }
 
 class pipeline_reg extends Module{
