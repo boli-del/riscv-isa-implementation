@@ -1,0 +1,7 @@
+target/
+project/target/
+project/project/
+.bloop/
+.metals/
+.bsp/
+test_run_dir/
