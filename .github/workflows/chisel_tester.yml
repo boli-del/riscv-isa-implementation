@@ -1,0 +1,27 @@
+name: run_chisel_tests
+on: push
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+            - name: Install Verilator
+              run: |
+                cd /tmp
+                curl -L -o oss-cad.tgz https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-06-19/oss-cad-suite-linux-x64-20260619.tgz
+                tar -xzf oss-cad.tgz
+                echo "/tmp/oss-cad-suite/bin" >> "$GITHUB_PATH"
+            - name: Check Verilator installation
+              run: verilator --version
+            - name: Set up JDK
+              uses: actions/setup-java@v4
+              with:
+                distribution: temurin
+                java-version: "17"
+                cache: sbt
+            - name: Run sbt test
+              working-directory: chisel
+              run: sbt test

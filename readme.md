@@ -1,3 +1,19 @@
+## Cache Architecture
+### New Cache FSM State Diagram
+
+```mermaid
+stateDiagram-v2
+    [*] --> sSearch
+    sSearch --> sHit_and_return: tag match && valid && !w_enable
+    sSearch --> sNot_Hit_Valid: miss
+    sSearch --> sWrite: tag_match && valid && w_enable
+    sNot_Hit_Valid --> sComplete_Stalled: replacement ready
+    sNot_Hit_Valid --> sNot_Hit_Valid: no replacement
+    sHit_and_return --> sSearch
+    sWrite --> sSearch
+    sComplete_Stalled --> sSearch
+```
+
 ## Cache Performances
 ### Direct Mapped Cache
 
