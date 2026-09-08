@@ -1,0 +1,25 @@
+name: run_chisel_tests
+on: push
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+            - name: Install Verilator
+              run: sudo apt-get update && sudo apt-get install -y verilator
+            - name: Check Verilator installation
+              run: verilator --version
+            - name: Set up JDK
+              uses: actions/setup-java@v4
+              with:
+                distribution: temurin
+                java-version: "17"
+                cache: sbt
+            - name: Set up sbt
+              uses: sbt/setup-sbt@v1
+            - name: Run sbt test
+              working-directory: chisel
+              run: sbt test

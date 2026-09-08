@@ -1,5 +1,10 @@
 name: run_coverage_against_diff
-on: pull_request
+on:
+  pull_request:
+    paths:
+      - 'rtl/**'
+      - 'testbenches/**'
+      - 'requirements.txt'
 jobs:
     test:
         runs-on: ubuntu-latest
