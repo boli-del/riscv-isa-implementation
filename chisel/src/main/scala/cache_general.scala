@@ -61,7 +61,7 @@ class Cache(numWays: Int, numSets: Int, blockSize: Int) extends Module{
         val data_out = Output(UInt(32.W))
         val needs_replacement = Output(UInt(1.W))
         val stalled_location = Output(UInt(32.W))
-        val stalled_wenable = Input(UInt(1.W))
+        val stalled_wenable = Output(UInt(1.W))
         val stalled = Output(UInt(1.W))
     })
 
@@ -88,14 +88,15 @@ class Cache(numWays: Int, numSets: Int, blockSize: Int) extends Module{
     val dataout = RegInit(0.U(32.W))
     val stalledLocationReg = RegInit(0.U(32.W))
     val stalledReg = RegInit(0.U(1.W))
+    val stalled_w_enable_Reg = RegInit(0.U(1.W))
 
     io.state := state
     io.stalled_location := stalledLocationReg
     io.stalled := stalledReg
     io.data_out := dataout
     io.dirty_out := 0.U
-    io.needs_replacement := 0.U
-
+    io.needs_replacement := replacement_indicator
+    io.stalled_wenable := stalled_w_enable_Reg
     switch (state){
         is(sSearch){
             when(hit_found && validBits(index)(hit) === true.B){
@@ -108,6 +109,9 @@ class Cache(numWays: Int, numSets: Int, blockSize: Int) extends Module{
             }.otherwise{
                 state := sNot_Hit_Valid
                 replacement_indicator := 1.U
+                stalledLocationReg := io.location
+                stalledReg := 1.U
+                stalled_w_enable_Reg := io.w_enable
             }
         }
         is(sHit_and_return){
@@ -125,8 +129,6 @@ class Cache(numWays: Int, numSets: Int, blockSize: Int) extends Module{
         }
         is(sNot_Hit_Valid){
             replacement_indicator := 1.U
-            stalledLocationReg := io.location
-            stalledReg := 1.U
             when(io.replacement_incoming === 1.U){
                 replacement_indicator := 0.U
                 state := sReplace
