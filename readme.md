@@ -58,5 +58,9 @@ AMAT = 3.00 + 0.0539 * (3.00 + 0.7742 * 3.26) = 3.30 cyc
 ### About Branch Predictors
 I think that TAGE predictor are such state of the art with TAGE-SC-L being top in the class branch predictor, I don't think I could optimize it further at my level of studies currently.
 
+Current Logit/Variance Based Branch Predictor(Custom built in cpp for concept verification) Architecture (implementation in cpp does not mimic taylor polynomial estimation currently):
+<img width="1086" height="308" alt="High Level Micropred Diagram" src="https://github.com/user-attachments/assets/82cc8cb2-6282-472c-a6d2-7fb0daff5cb3" />
+
+
 ### In Progress Work
 Migrating the entirety of test suite and module implementation from verilog to chisel via scala, currently migrating and resolving verilator linter errors via pr title: Chisel Migration
