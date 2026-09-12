@@ -146,13 +146,11 @@ class Cache(numWays: Int, numSets: Int, blockSize: Int) extends Module{
                 findLru.io.usefulness := usefulness
                 findLru.io.input_sets := index
                 val replaceWay = findLru.io.max_usefulness
-
                 val updateUsefulness = Module(new Update_Usefulness(numWays, numSets, blockSize))
                 updateUsefulness.io.usefulness := usefulness
                 updateUsefulness.io.input_sets := index
                 updateUsefulness.io.input_recently_updated := replaceWay
                 usefulness(index) := updateUsefulness.io.updated_usefulness_arr
-
                 tagArray(index)(replaceWay) := tag
                 validBits(index)(replaceWay) := true.B
                 state := sComplete_Stalled
