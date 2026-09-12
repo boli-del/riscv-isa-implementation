@@ -60,3 +60,28 @@ class pipeline_reg extends Module{
     io.storage_immval := RegNext(io.immval)
     io.storage_bsel := RegNext(io.bsel)
 }
+
+class Instruction_dec_Top extends Module{
+    val io = IO(new Bundle{
+        val instr_code = Input(UInt(32.W))
+        val w_back = Input(UInt(32.W))
+        val rd = Input(UInt(32.W))
+        val W_enable = Input(UInt(1.W))
+        val rs1_val = Output(UInt(32.W))
+        val rs2_val = Output(UInt(32.W))
+        val b_sel = Output(UInt(1.W))
+        val immval = Output(UInt(32.W))
+    })
+    val dec = Module(new instruction_dec);
+    dec.io.instr_code := io.instr_code
+    io.immval := dec.io.imm
+    io.b_sel := dec.io.bsel
+    val reg_f = Module(new register_file);
+    reg_f.io.rs1val := dec.io.rs1
+    reg_f.io.rs2val := dec.io.rs2
+    reg_f.io.w_enable := io.W_enable
+    reg_f.io.rd := io.rd
+    reg_f.io.rd_write := io.w_back
+    io.rs1_val := reg_f.io.rs1_out
+    io.rs2_val := reg_f.io.rs2_out
+}
