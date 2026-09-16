@@ -65,12 +65,13 @@ class Instruction_dec_Top extends Module{
     val io = IO(new Bundle{
         val instr_code = Input(UInt(32.W))
         val w_back = Input(UInt(32.W))
-        val rd = Input(UInt(32.W))
+        val rd = Input(UInt(5.W))
         val W_enable = Input(UInt(1.W))
         val rs1_val = Output(UInt(32.W))
         val rs2_val = Output(UInt(32.W))
         val b_sel = Output(UInt(1.W))
         val immval = Output(UInt(32.W))
+        val rd_new = Output(UInt(5.W))
     })
     val dec = Module(new instruction_dec);
     dec.io.instr_code := io.instr_code
@@ -84,4 +85,5 @@ class Instruction_dec_Top extends Module{
     reg_f.io.rd_write := io.w_back
     io.rs1_val := reg_f.io.rs1_out
     io.rs2_val := reg_f.io.rs2_out
+    io.rd_new := dec.io.rd
 }
