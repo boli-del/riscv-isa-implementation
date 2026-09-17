@@ -46,6 +46,7 @@ class Update_Usefulness(numWays: Int, numSets: Int, blockSize: Int) extends Modu
     }
 }
 
+//completed only use for defining whether the dataout is usable vs. don't care
 class Cache(numWays: Int, numSets: Int, blockSize: Int) extends Module{
     import reg_refills.State
     import reg_refills.State._
@@ -63,6 +64,7 @@ class Cache(numWays: Int, numSets: Int, blockSize: Int) extends Module{
         val stalled_location = Output(UInt(32.W))
         val stalled_wenable = Output(UInt(1.W))
         val stalled = Output(UInt(1.W))
+        val completed = Output(UInt(1.W))
     })
 
     //necessary predefinitions for lengths and tags and preliminaries that will be needed
@@ -102,9 +104,11 @@ class Cache(numWays: Int, numSets: Int, blockSize: Int) extends Module{
             when(hit_found && validBits(index)(hit) === true.B){
                 when(io.w_enable === 1.U){
                     state := sWrite_return
+                    io.completed := 0.U
                 }.otherwise{
                     state := sHit_and_return
                     replacement_indicator := 0.U
+                    io.completed := 0.U
                 }
             }.otherwise{
                 state := sNot_Hit_Valid
@@ -112,6 +116,7 @@ class Cache(numWays: Int, numSets: Int, blockSize: Int) extends Module{
                 stalledLocationReg := io.location
                 stalledReg := 1.U
                 stalled_w_enable_Reg := io.w_enable
+                io.completed := 0.U
             }
         }
         is(sHit_and_return){
@@ -119,6 +124,7 @@ class Cache(numWays: Int, numSets: Int, blockSize: Int) extends Module{
             dataout := wordsInLine(offset(offset_bits-1, 2))
             replacement_indicator := 0.U
             state := sSearch
+            io.completed := 1.U
         }
         is(sWrite_return){
             tagArray(index)(hit) := tag
@@ -126,9 +132,11 @@ class Cache(numWays: Int, numSets: Int, blockSize: Int) extends Module{
             dirtyBits(index)(hit) := true.B
             infoArray(index)(hit) := io.data_in
             state := sSearch
+            io.completed := 0.U
         }
         is(sNot_Hit_Valid){
             replacement_indicator := 1.U
+            io.completed := 0.U
             when(io.replacement_incoming === 1.U){
                 replacement_indicator := 0.U
                 state := sReplace
@@ -136,6 +144,7 @@ class Cache(numWays: Int, numSets: Int, blockSize: Int) extends Module{
         }
         is(sReplace){
             //indicates the tag matched but the entry was invalid (not a true miss)
+            io.completed := 0.U
             when(hit_found){
                 tagArray(index)(hit) := tag
                 validBits(index)(hit) := true.B
@@ -146,19 +155,18 @@ class Cache(numWays: Int, numSets: Int, blockSize: Int) extends Module{
                 findLru.io.usefulness := usefulness
                 findLru.io.input_sets := index
                 val replaceWay = findLru.io.max_usefulness
-
                 val updateUsefulness = Module(new Update_Usefulness(numWays, numSets, blockSize))
                 updateUsefulness.io.usefulness := usefulness
                 updateUsefulness.io.input_sets := index
                 updateUsefulness.io.input_recently_updated := replaceWay
                 usefulness(index) := updateUsefulness.io.updated_usefulness_arr
-
                 tagArray(index)(replaceWay) := tag
                 validBits(index)(replaceWay) := true.B
                 state := sComplete_Stalled
             }
         }
         is(sComplete_Stalled){
+            io.completed := 0.U
             stalledReg := 0.U
             state := sSearch
         }
