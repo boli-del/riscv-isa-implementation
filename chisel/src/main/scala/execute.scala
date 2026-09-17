@@ -1,5 +1,5 @@
 import chisel3._
-import chisel3.utils._
+import chisel3.util._
 
 class execute_pipeline extends Module{
     val io = IO(new Bundle{
@@ -11,10 +11,10 @@ class execute_pipeline extends Module{
         val rs1_val = Input(UInt(32.W))
         val rs2_val = Input(UInt(32.W))
         val imm_sel = Input(UInt(4.W))
-        val produced_val = Output(32.W)
+        val produced_val = Output(UInt(32.W))
     })
-    val a_val = RegInit(0.U, UInt(32.W))
-    val b_val = RegInit(0.U, UInt(32.W))
+    val a_val = RegInit(0.U(32.W))
+    val b_val = RegInit(0.U(32.W))
     val alu = Module(new ALU);
     when(io.a_sel === 1.U){
         a_val := io.rs1_val
@@ -29,7 +29,7 @@ class execute_pipeline extends Module{
     alu.io.a := a_val
     alu.io.b := b_val
     alu.io.mode := io.imm_sel
-    produced_val := alu.io.Out
+    io.produced_val := alu.io.Out
 }
 
 class ex_pipeline_reg extends Module{
